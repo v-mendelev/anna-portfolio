@@ -1,0 +1,12 @@
+---
+/** Centered page-width wrapper with responsive side padding. */
+import type { HTMLAttributes } from 'astro/types';
+
+type Props = HTMLAttributes<'div'> & { as?: 'div' | 'main' | 'section' | 'header' | 'footer' };
+
+const { as: Tag = 'div', class: className, ...rest } = Astro.props;
+---
+
+<Tag class:list={['max-w-page mx-auto w-full px-4 sm:px-6 lg:px-8', className]} {...rest}>
+  <slot />
+</Tag>

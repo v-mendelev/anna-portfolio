@@ -1,0 +1,4 @@
+# pnpm settings for this single-package repository.
+# shellEmulator makes `VAR=value command` in package.json scripts work
+# identically on Windows (PowerShell/cmd), macOS and Linux.
+shellEmulator: true

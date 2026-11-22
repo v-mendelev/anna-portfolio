@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Container from '../../components/ui/Container.astro';
+import LinkCard from '../../components/ui/LinkCard.astro';
+import { withBase } from '../../lib/paths';
+import { demos } from '../../site/demos';
+import { siteConfig } from '../../site/site.config';
+---
+
+<BaseLayout title="Выбор демоверсии">
+  <Container as="main" id="main" class="py-12 sm:py-20" data-testid="page-container">
+    <p class="text-ink-muted text-sm tracking-widest uppercase">{siteConfig.name}</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-5xl">Выберите демоверсию дизайна</h1>
+    <p class="text-ink-muted mt-4 max-w-prose text-base sm:text-lg">
+      Три направления оформления сайта-портфолио. Откройте каждое и сравните.
+    </p>
+    <ul class="mt-10 grid gap-4 sm:gap-6 md:grid-cols-3" data-testid="demo-list">
+      {demos.map((demo) => (
+        <li>
+          <LinkCard
+            href={withBase(`/design/${demo.slug}/`)}
+            title={demo.title}
+            description={demo.summary}
+            testId={`demo-link-${demo.slug}`}
+          />
+        </li>
+      ))}
+    </ul>
+  </Container>
+</BaseLayout>

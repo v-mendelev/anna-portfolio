@@ -1,0 +1,18 @@
+# Normalise line endings: LF in the repo and working tree on every OS
+# (Prettier enforces "endOfLine": "lf"), except Windows-only scripts.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.gif binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary

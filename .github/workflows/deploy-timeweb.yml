@@ -1,0 +1,128 @@
+name: Deploy to Timeweb Cloud
+
+# PREPARED, DISABLED BY DEFAULT. Nothing runs until the repository variable
+# TIMEWEB_DEPLOY_ENABLED is set to "true" and the secrets below exist.
+#
+#   dev  -> environment "staging"
+#   main -> environment "production"
+#
+# Target: any SSH-accessible static host (Timeweb Cloud VPS with nginx, see
+# deploy/timeweb/). Release-based layout gives atomic switch and instant rollback:
+#   <TIMEWEB_PATH>/releases/<sha>/   and   <TIMEWEB_PATH>/current -> releases/<sha>
+#
+# Per-environment configuration (Settings -> Environments):
+#   vars:    SITE_URL (e.g. https://staging.example.ru), PUBLIC_SITE_INDEXABLE ("true" only in production)
+#   secrets: TIMEWEB_SSH_HOST, TIMEWEB_SSH_USER, TIMEWEB_SSH_KEY, TIMEWEB_KNOWN_HOSTS, TIMEWEB_PATH
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [staging, production]
+        default: staging
+      ref:
+        description: Commit SHA/tag to deploy (rollback). Empty = branch head.
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: timeweb-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  gate:
+    name: Gate
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+      environment: ${{ steps.gate.outputs.environment }}
+    steps:
+      - id: gate
+        run: |
+          echo "enabled=${{ vars.TIMEWEB_DEPLOY_ENABLED == 'true' }}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.environment }}" ]; then
+            echo "environment=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=staging" >> "$GITHUB_OUTPUT"
+          fi
+      - if: ${{ vars.TIMEWEB_DEPLOY_ENABLED != 'true' }}
+        run: echo "::notice::Timeweb deploy is disabled (set repository variable TIMEWEB_DEPLOY_ENABLED=true to enable)."
+
+  checks:
+    name: Checks
+    needs: gate
+    if: ${{ needs.gate.outputs.enabled == 'true' }}
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.ref }}
+
+  deploy:
+    name: Deploy (${{ needs.gate.outputs.environment }})
+    needs: [gate, checks]
+    if: ${{ needs.gate.outputs.enabled == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: ${{ needs.gate.outputs.environment }}
+      url: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build (Timeweb target)
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          PUBLIC_SITE_INDEXABLE: ${{ vars.PUBLIC_SITE_INDEXABLE || 'false' }}
+          PUBLIC_API_BASE_URL: ${{ vars.PUBLIC_API_BASE_URL }}
+        run: pnpm build:timeweb
+
+      - name: Upload release over SSH and switch symlink
+        env:
+          SSH_HOST: ${{ secrets.TIMEWEB_SSH_HOST }}
+          SSH_USER: ${{ secrets.TIMEWEB_SSH_USER }}
+          SSH_KEY: ${{ secrets.TIMEWEB_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.TIMEWEB_KNOWN_HOSTS }}
+          REMOTE_PATH: ${{ secrets.TIMEWEB_PATH }}
+          RELEASE: ${{ inputs.ref || github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid release ref"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          SSH="ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes"
+          $SSH "$SSH_USER@$SSH_HOST" "mkdir -p '$REMOTE_PATH/releases/$RELEASE'"
+          rsync -az --delete -e "$SSH" dist/ "$SSH_USER@$SSH_HOST:$REMOTE_PATH/releases/$RELEASE/"
+          $SSH "$SSH_USER@$SSH_HOST" "ln -sfn '$REMOTE_PATH/releases/$RELEASE' '$REMOTE_PATH/current' \
+            && ls -1dt '$REMOTE_PATH'/releases/* | tail -n +6 | xargs -r rm -rf"
+          rm -f ~/.ssh/deploy_key
+
+      - name: Smoke check live site
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          for path in design/ design/cinematic/ design/editorial/ design/creative/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "${SITE_URL%/}/$path")
+            echo "$path -> $code"; [ "$code" = "200" ] || exit 1
+          done

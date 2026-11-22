@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import DemoPlaceholder from '../../../components/demo/DemoPlaceholder.astro';
+import { getDemo } from '../../../site/get-demo';
+
+const demo = getDemo('creative');
+---
+
+<BaseLayout title={`Демо: ${demo.title}`}>
+  <DemoPlaceholder demo={demo} />
+</BaseLayout>

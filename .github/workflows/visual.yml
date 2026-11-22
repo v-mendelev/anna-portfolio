@@ -1,0 +1,64 @@
+name: Visual regression
+
+# Opt-in visual regression run on Linux (canonical baseline platform).
+# - mode=check:  compare against committed baselines (tests/visual/*-snapshots/*-linux.png)
+# - mode=update: regenerate baselines and upload them as an artifact to commit
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: check or update
+        type: choice
+        options: [check, update]
+        default: check
+
+permissions:
+  contents: read
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  visual:
+    name: Visual (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run visual tests
+        run: |
+          if [ "${{ inputs.mode }}" = "update" ]; then
+            pnpm test:visual:update
+          else
+            pnpm test:visual
+          fi
+
+      - name: Upload baselines
+        if: ${{ inputs.mode == 'update' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-baselines-linux
+          path: tests/visual/**/*-snapshots/
+          retention-days: 14
+
+      - name: Upload diff report
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

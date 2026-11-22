@@ -1,0 +1,103 @@
+name: Deploy demo to GitHub Pages
+
+# main -> GitHub Pages (demo). Deploys only after the full CI pipeline passes.
+# Rollback: run this workflow manually with `ref` = a previous tag/commit SHA
+# (or `git revert` on main). See DEPLOYMENT.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA or tag to deploy (empty = latest main). Use for rollback.
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# One Pages deployment at a time; never cancel an in-progress deployment.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  checks:
+    name: Checks
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.ref }}
+
+  build:
+    name: Build (GitHub Pages)
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - name: Read Pages configuration
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Export site URL and base path
+        run: |
+          {
+            echo "DEPLOY_TARGET=github-pages"
+            echo "SITE_URL=${{ steps.pages.outputs.origin }}"
+            echo "BASE_PATH=${{ steps.pages.outputs.base_path }}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build and upload with the official Astro action
+        uses: withastro/action@v6
+        with:
+          node-version: '26'
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  verify:
+    name: Verify live site
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check published pages respond
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          base="${PAGE_URL%/}"
+          [ -n "$base" ] || { echo "page_url is empty"; exit 1; }
+          for path in design/ design/cinematic/ design/editorial/ design/creative/; do
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$base/$path")
+              [ "$code" = "200" ] && break
+              sleep 10
+            done
+            echo "$base/$path -> $code"
+            [ "$code" = "200" ] || exit 1
+          done

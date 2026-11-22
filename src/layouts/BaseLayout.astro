@@ -1,0 +1,52 @@
+---
+/**
+ * Root HTML document. Every page renders through this layout.
+ * Generic: project data comes from src/site/site.config.ts.
+ */
+import '../styles/global.css';
+import { env } from '../config/features';
+import { withBase } from '../lib/paths';
+import { siteConfig } from '../site/site.config';
+
+export interface Props {
+  title?: string;
+  description?: string;
+  /** Force noindex regardless of PUBLIC_SITE_INDEXABLE. */
+  noindex?: boolean;
+}
+
+const { title, description = siteConfig.description, noindex = false } = Astro.props;
+const fullTitle = title ? `${title} — ${siteConfig.name}` : siteConfig.name;
+const canonical = new URL(Astro.url.pathname, Astro.site).toString();
+const robots = noindex || !env.indexable ? 'noindex, nofollow' : 'index, follow';
+---
+
+<!doctype html>
+<html lang={siteConfig.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="icon" href={withBase('/favicon.ico')} sizes="32x32" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={siteConfig.locale} />
+    <meta property="og:url" content={canonical} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="bg-accent text-accent-ink sr-only rounded px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
+    >
+      Перейти к содержимому
+    </a>
+    <slot />
+  </body>
+</html>

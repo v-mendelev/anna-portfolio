@@ -1,0 +1,33 @@
+---
+/**
+ * Temporary placeholder body for a design demo.
+ * Replace per demo when the real design is implemented.
+ */
+import Container from '../ui/Container.astro';
+import { withBase } from '../../lib/paths';
+import type { DemoVariant } from '../../lib/site';
+
+export interface Props {
+  demo: DemoVariant;
+}
+
+const { demo } = Astro.props;
+---
+
+<Container as="main" id="main" class="py-12 sm:py-20" data-testid="page-container">
+  <nav aria-label="Навигация по демо">
+    <a
+      href={withBase('/design/')}
+      class="text-accent text-sm font-medium"
+      data-testid="back-to-design"
+    >
+      ← Все демоверсии
+    </a>
+  </nav>
+  <p class="text-ink-muted mt-8 text-sm tracking-widest uppercase">Демоверсия</p>
+  <h1 class="mt-2 text-4xl font-bold tracking-tight break-words sm:text-6xl">{demo.title}</h1>
+  <p class="text-ink-muted mt-4 max-w-prose text-base sm:text-lg">{demo.summary}</p>
+  <p class="border-line text-ink-muted mt-10 rounded-lg border border-dashed p-4 text-sm">
+    Заготовка страницы. Дизайн будет разработан отдельной задачей.
+  </p>
+</Container>

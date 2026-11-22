@@ -1,0 +1,24 @@
+---
+/**
+ * Temporary root page: while only design demos exist, send visitors to
+ * /design/. Static hosting (GitHub Pages) has no server redirects, so we use
+ * a meta refresh plus a visible link (works without JS).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/ui/Container.astro';
+import { withBase } from '../lib/paths';
+
+const target = withBase('/design/');
+---
+
+<BaseLayout title="Демоверсии" noindex>
+  <meta slot="head" http-equiv="refresh" content={`0; url=${target}`} />
+  <Container as="main" id="main" class="py-12 sm:py-20" data-testid="page-container">
+    <h1 class="text-3xl font-bold tracking-tight">Сайт в разработке</h1>
+    <p class="text-ink-muted mt-4">
+      <a class="text-accent font-medium underline" href={target}>
+        Перейти к демоверсиям дизайна
+      </a>
+    </p>
+  </Container>
+</BaseLayout>

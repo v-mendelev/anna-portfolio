@@ -1,0 +1,17 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/ui/Container.astro';
+import { withBase } from '../lib/paths';
+---
+
+<BaseLayout title="Страница не найдена" noindex>
+  <Container as="main" id="main" class="py-12 sm:py-20" data-testid="page-container">
+    <p class="text-ink-muted text-sm tracking-widest uppercase">Ошибка 404</p>
+    <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-5xl">Страница не найдена</h1>
+    <p class="text-ink-muted mt-4">
+      <a class="text-accent font-medium underline" href={withBase('/design/')}>
+        К демоверсиям
+      </a>
+    </p>
+  </Container>
+</BaseLayout>

@@ -137,69 +137,172 @@ for (const slug of DEMO_SLUGS) {
   });
 }
 
-test.describe('@smoke scroll-linked motion', () => {
-  // Regression: a minifier once folded `animation` + `animation-timeline` into an
-  // invalid shorthand, so the scroll animations silently never ran.
-  for (const [slug, selector, scrollTo] of [
-    ['cinematic', '.cine-screen', '#top'],
-    ['creative', '.cr-slide', '#services'],
-  ] as const) {
-    test(`${slug}: ${selector} is animated by scroll where supported`, async ({ page }) => {
-      await page.goto(`design/${slug}/`);
-      const supported = await page.evaluate(() => CSS.supports('animation-timeline: view()'));
-      test.skip(!supported, 'Scroll-driven animations are not supported in this browser');
+/** Horizontal offset (px) of an element's current transform. */
+const translateX = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41;
+/** Horizontal scale of an element's current transform. */
+const scaleX = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a;
 
-      await page.locator(scrollTo).scrollIntoViewIfNeeded();
-      await page.evaluate(() => window.scrollBy(0, 200));
-      const target = page.locator(selector).first();
-      expect(await target.evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
-      expect(await target.evaluate((el) => el.getAnimations().length)).toBeGreaterThan(0);
+test.describe('@smoke scroll-driven motion actually runs', () => {
+  // Regression: a minifier once folded `animation` + `animation-timeline` into an
+  // invalid shorthand, so scroll animations silently never ran. These tests read
+  // the transform the animation produces at different scroll positions.
+  test('skleyka: a cut headline lands (offset → 0) as it scrolls into view', async ({ page }) => {
+    await page.goto('design/editorial/');
+    const supported = await page.evaluate(() => CSS.supports('animation-timeline: view()'));
+    test.skip(!supported, 'Scroll-driven animations are not supported in this browser');
+    await page.addStyleTag({ content: 'html{scroll-behavior:auto!important}' });
+    const half = page.locator('#services .sk-cut-b');
+
+    // Heading just entering from the bottom: the lower half is still offset.
+    await page.evaluate(() => {
+      const h = document.querySelector('#services h2');
+      if (h) window.scrollTo(0, h.getBoundingClientRect().top + scrollY - innerHeight + 40);
     });
-  }
+    await expect.poll(() => half.evaluate(translateX)).not.toBeCloseTo(0, 0);
+
+    // Heading well inside the view: the cut has landed.
+    await page.evaluate(() => {
+      const h = document.querySelector('#services h2');
+      if (h) window.scrollTo(0, h.getBoundingClientRect().top + scrollY - innerHeight * 0.3);
+    });
+    await expect.poll(() => half.evaluate(translateX)).toBeCloseTo(0, 0);
+  });
+
+  test('skleyka: with reduced motion every cut is already aligned', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('design/editorial/');
+    const offsets = await page
+      .locator('.sk-cut-b')
+      .evaluateAll((els) =>
+        els.map((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m41),
+      );
+    expect(offsets.length).toBeGreaterThan(5);
+    for (const x of offsets) expect(Math.abs(x)).toBeLessThan(0.5);
+  });
+
+  test('rapid: the timeline fill follows page progress', async ({ page }) => {
+    await page.goto('design/creative/');
+    const supported = await page.evaluate(() => CSS.supports('animation-timeline: scroll()'));
+    test.skip(!supported, 'Scroll-driven animations are not supported in this browser');
+    await page.addStyleTag({ content: 'html{scroll-behavior:auto!important}' });
+    const fill = page.locator('.rp-progress');
+    const at = async (f: number) => {
+      await page.evaluate(
+        (p) => window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * p),
+        f,
+      );
+      await page.waitForTimeout(150);
+      return fill.evaluate(scaleX);
+    };
+    expect(await at(0)).toBeLessThan(0.05);
+    const mid = await at(0.5);
+    expect(mid).toBeGreaterThan(0.4);
+    expect(mid).toBeLessThan(0.6);
+    expect(await at(1)).toBeGreaterThan(0.95);
+  });
+
+  test('rapid: the name ramps on the visual layer while its font size stays put', async ({
+    page,
+  }) => {
+    await page.goto('design/creative/');
+    const supported = await page.evaluate(() => CSS.supports('animation-timeline: scroll()'));
+    test.skip(!supported, 'Scroll-driven animations are not supported in this browser');
+    const wide = page.locator('.rp-name-wide');
+    const size = await wide.evaluate((el) => getComputedStyle(el).fontSize);
+    expect(await wide.evaluate(scaleX)).toBeCloseTo(1, 2);
+    await page.evaluate(() => window.scrollTo(0, innerHeight * 0.6));
+    await expect.poll(() => wide.evaluate(scaleX)).toBeLessThan(0.8);
+    // Transform only: no font-size or font-variation change on scroll.
+    expect(await wide.evaluate((el) => getComputedStyle(el).fontSize)).toBe(size);
+  });
 });
 
 test.describe('@smoke concept-specific interactions', () => {
-  test('cinematic: services are set as a credits block', async ({ page }) => {
+  test('kadr: a contact-sheet frame opens in place, one at a time; Escape closes it', async ({
+    page,
+  }) => {
     await page.goto('design/cinematic/');
-    await expect(page.locator('[data-credits] dt')).toHaveCount(4);
-    await expect(page.locator('.cine-subtitle')).toHaveCount(6);
-  });
+    const toggles = page.locator('[data-sheet-toggle]');
+    const cells = page.locator('.kadr-cell');
+    await expect(page.locator('.kadr-more').first()).toBeHidden();
 
-  test('editorial: an index entry opens in place to show the project', async ({ page }) => {
-    await page.goto('design/editorial/');
-    const entry = page.locator('#work details').first();
-    await expect(entry).not.toHaveAttribute('open', '');
-    await entry.locator('summary').click();
-    await expect(entry).toHaveAttribute('open', '');
-    await expect(entry.locator('[data-footage]')).toBeVisible();
-    await entry.locator('summary').click();
-    await expect(entry).not.toHaveAttribute('open', '');
-  });
-
-  test('creative: a montage frame opens to show what was done, one at a time', async ({ page }) => {
-    await page.goto('design/creative/');
-    const toggles = page.locator('[data-card-toggle]');
-    const details = page.locator('.cr-card-more');
-    await expect(details.first()).toBeHidden();
+    await toggles.nth(1).click();
+    await expect(toggles.nth(1)).toHaveAttribute('aria-expanded', 'true');
+    await expect(cells.nth(1)).toHaveAttribute('data-open', '');
+    await expect(cells.nth(1).locator('.kadr-more')).toBeVisible();
+    await expect(cells.nth(1).locator('.kadr-more')).toContainText('Что я делаю в таком проекте');
 
     await toggles.nth(0).click();
-    await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'true');
-    await expect(details.nth(0)).toBeVisible();
-    await expect(details.nth(0)).toContainText('Что я делаю в таком проекте');
-    // The pulled-forward frame straightens (Tailwind tilts use the 'rotate' property).
-    await expect
-      .poll(() =>
-        page.locator('[data-card][data-front]').evaluate((el) => getComputedStyle(el).rotate),
-      )
-      .toMatch(/^(0deg|none)$/);
-    await expect(page.locator('[data-card][data-front]')).toHaveCount(1);
+    await expect(toggles.nth(1)).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('.kadr-cell[data-open]')).toHaveCount(1);
 
-    await toggles.nth(1).click();
-    await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'false');
-    await expect(details.nth(0)).toBeHidden();
-    await expect(toggles.nth(1)).toHaveAttribute('aria-expanded', 'true');
-
-    await toggles.nth(1).click();
-    await expect(page.locator('[data-card][data-front]')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.kadr-cell[data-open]')).toHaveCount(0);
+    await expect(toggles.nth(0)).toBeFocused();
   });
+
+  test('skleyka: cut headlines are announced once, with the real word', async ({ page }) => {
+    await page.goto('design/editorial/');
+    for (const name of ['Работы', 'Услуги', 'Отзывы']) {
+      await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(1);
+    }
+    await expect(page.getByRole('heading', { level: 1 })).toHaveAccessibleName('Анна Шеленкова');
+    // Every visible copy of a cut word is hidden from assistive technology.
+    const copies = page.locator('.sk-cut-b');
+    for (const copy of await copies.all())
+      await expect(copy).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  test('skleyka: each spread circles the services the project needs', async ({ page }) => {
+    await page.goto('design/editorial/');
+    const spreads = page.locator('#work [data-category]');
+    await expect(spreads).toHaveCount(6);
+    for (const spread of await spreads.all()) {
+      expect(await spread.locator('.sk-mark').count()).toBeGreaterThan(0);
+    }
+  });
+
+  test('rapid: the reel freezes the frame under the playhead; buttons step through it', async ({
+    page,
+  }) => {
+    await page.goto('design/creative/');
+    const items = page.locator('#work [data-reel-item]');
+    await page.locator('#work').scrollIntoViewIfNeeded();
+    await expect(items.nth(0)).toHaveAttribute('data-active', '');
+    await expect(items.nth(0).locator('.rp-reel-more')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Следующий кадр' }).click();
+    await expect(items.nth(1)).toHaveAttribute('data-active', '');
+    await expect(items.nth(0)).not.toHaveAttribute('data-active', '');
+
+    await page.getByRole('button', { name: 'Предыдущий кадр' }).click();
+    await expect(items.nth(0)).toHaveAttribute('data-active', '');
+  });
+
+  test('rapid: the timeline marks the section in view and docks after the hero', async ({
+    page,
+  }) => {
+    await page.goto('design/creative/');
+    const header = page.locator('[data-site-header]');
+    await expect(header).not.toHaveAttribute('data-scrolled', '');
+    await page.locator('#services').scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 200));
+    await expect(header).toHaveAttribute('data-scrolled', '');
+    await expect(page.locator('[data-seg="services"]')).toHaveAttribute('data-active', '');
+  });
+});
+
+test.describe('@smoke desktop navigation', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+  // Regression: an unlayered helper class once overrode `lg:hidden`, so the phone
+  // menu button showed next to the desktop section links.
+  for (const slug of ['cinematic', 'editorial', 'creative'] as const) {
+    test(`${slug}: section links are shown and the phone menu button is hidden`, async ({
+      page,
+    }) => {
+      await page.goto(`design/${slug}/`);
+      await expect(page.locator('[data-site-header] nav[aria-label="Разделы"]')).toBeVisible();
+      await expect(page.locator('[data-menu-toggle]')).toBeHidden();
+    });
+  }
 });

@@ -55,10 +55,8 @@ for (const slug of DEMO_SLUGS) {
       }
     });
 
-    test('the header rests see-through and turns solid exactly once on the way down', async ({
-      page,
-    }) => {
-      test.skip(slug === 'editorial', 'Editorial uses an always-opaque sticky header by design');
+    test('the timeline header docks in exactly once on the way down', async ({ page }) => {
+      test.skip(slug !== 'creative', 'Only RAPID changes its header: the timeline docks in');
       await openConcept(page, slug);
       await page.addStyleTag({ content: '*{transition:none!important}' });
       const result = await page.evaluate(async () => {
@@ -86,7 +84,7 @@ for (const slug of DEMO_SLUGS) {
         }
         return { atTop, changes };
       });
-      expect(result.atTop, 'not solid at the top of the page').toBe(false);
+      expect(result.atTop, 'timeline not docked at the top of the page').toBe(false);
       expect(result.changes, 'state flips while scrolling one way').toBe(1);
     });
 
@@ -214,6 +212,9 @@ for (const slug of DEMO_SLUGS) {
           );
           if (!hasText || !el.checkVisibility({ opacityProperty: true })) continue;
           if (el.closest('[data-footage]') && !el.closest('[data-placeholder]')) continue;
+          // Decorative copies hidden from assistive tech (motion trails, the
+          // shifted half of a cut word) are not text content for WCAG 1.4.3.
+          if (el.closest('[aria-hidden="true"]')) continue;
           // Text laid over a footage frame (a sibling, e.g. subtitles or the hero
           // title) sits on painted media: not measurable here, so skip it rather
           // than measuring it against the section colour.
@@ -296,39 +297,32 @@ for (const slug of DEMO_SLUGS) {
 test.describe('@smoke concept-specific phone layout', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('cinematic: portfolio rows carry only title, category and the demo label', async ({
+  test('kadr: the contact sheet is two frames wide; an open frame spans the sheet', async ({
     page,
   }) => {
     await openConcept(page, 'cinematic');
-    const rows = page.locator('#work .cine-row');
-    expect(await rows.count()).toBe(5);
-    const blocks = await rows.evaluateAll((items) =>
-      items.map(
-        (row) =>
-          [...row.querySelectorAll('article > div > *')].filter((el) => el.checkVisibility())
-            .length,
-      ),
-    );
-    for (const n of blocks) expect(n).toBeLessThanOrEqual(2);
+    const sheet = page.locator('#work [data-project-list]');
+    const cells = sheet.locator('.kadr-cell');
+    const sheetBox = await sheet.boundingBox();
+    const first = await cells.nth(0).boundingBox();
+    expect(sheetBox && first && first.width < sheetBox.width * 0.55).toBe(true);
+    await cells.nth(0).locator('[data-sheet-toggle]').click();
+    await expect
+      .poll(async () => (await cells.nth(0).boundingBox())?.width ?? 0)
+      .toBeGreaterThan((sheetBox?.width ?? 0) * 0.95);
   });
 
-  test('creative: montage frames are staggered, not full-bleed slabs', async ({ page }) => {
+  test('rapid: the reel shows one frame with the next one peeking', async ({ page }) => {
     await openConcept(page, 'creative');
-    const widths = await page
-      .locator('#work [data-card]')
-      .evaluateAll((cards) => cards.map((c) => c.getBoundingClientRect().width / innerWidth));
-    for (const w of widths) expect(w).toBeLessThanOrEqual(0.9);
-    // The stagger must alternate among the cards that are visible, also when
-    // a filter hides some of them (hidden items still count for :nth-child).
-    for (const filter of ['all', 'travel', 'brand']) {
-      await page.locator(`#work [data-filter="${filter}"]`).click();
-      const lefts = await page
-        .locator('#work li[data-category]:visible')
-        .evaluateAll((items) => items.map((li) => Math.round(li.getBoundingClientRect().left)));
-      expect(lefts.length, `visible cards for ${filter}`).toBeGreaterThan(1);
-      for (let i = 1; i < lefts.length; i++) {
-        expect(lefts[i], `card ${i} alternates sides (${filter})`).not.toBe(lefts[i - 1]);
-      }
-    }
+    const items = page.locator('#work [data-reel-item]');
+    const first = await items.nth(0).boundingBox();
+    const second = await items.nth(1).boundingBox();
+    expect(first && first.width < PHONE.width * 0.9).toBe(true);
+    // The second frame starts inside the viewport: the strip reads as scrollable.
+    expect(second && second.x < PHONE.width).toBe(true);
+    // The reel scrolls itself; the page never scrolls sideways.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
   });
 });

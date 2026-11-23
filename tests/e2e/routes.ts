@@ -30,9 +30,9 @@ export const CONCEPT_SECTIONS = [
 
 /** Self-hosted typefaces each concept must actually load. */
 export const CONCEPT_FONTS: Record<DemoSlugE2E, readonly string[]> = {
-  cinematic: ['Cormorant Variable', 'Commissioner Variable'],
-  editorial: ['Literata Variable', 'Golos Text Variable'],
-  creative: ['Unbounded Variable', 'Golos Text Variable'],
+  cinematic: ['Onest Variable'], // KADR
+  editorial: ['Alumni Sans Variable', 'Onest Variable'], // SKLEYKA
+  creative: ['Noto Sans Display Variable'], // RAPID
 };
 
 /** Required responsive breakpoints (CSS px). */

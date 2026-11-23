@@ -10,8 +10,11 @@ import type { FrameTone } from '../../lib/portfolio';
 
 export interface Props {
   tone: FrameTone;
-  /** CSS aspect-ratio, e.g. "16 / 9", "2.39 / 1", "4 / 5", "1". */
-  ratio?: string;
+  /**
+   * CSS aspect-ratio, e.g. "16 / 9", "2.39 / 1", "4 / 5", "1". Pass `null` to
+   * leave it to classes (responsive ratios such as `aspect-video lg:aspect-[4/5]`).
+   */
+  ratio?: string | null;
   /** Accessible description of what the frame shows / will show. */
   description: string;
   poster?: string;
@@ -49,13 +52,15 @@ const {
 } = Astro.props;
 
 const style = [
-  `aspect-ratio: ${ratio}`,
+  ratio === null ? '' : `aspect-ratio: ${ratio}`,
   `--tone-from: ${tone.from}`,
   `--tone-to: ${tone.to}`,
   `--horizon: ${tone.horizon ?? 58}%`,
   `--sun-x: ${tone.sunX ?? 72}%`,
   `--sun-y: ${tone.sunY ?? 30}%`,
-].join('; ');
+]
+  .filter(Boolean)
+  .join('; ');
 ---
 
 <figure

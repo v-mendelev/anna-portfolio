@@ -45,11 +45,15 @@
   --font-ed-serif: 'Literata Variable', 'Literata Variable Fallback', serif;
   --font-ed-sans: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
 
-  /* C. Creative: constructivist montage poster */
-  --color-cr-yellow: #f4d23c;
-  --color-cr-ink: #1a1a1a;
-  --color-cr-blue: #2741d8;
-  --color-cr-white: #fffdf6;
+  /* C. Creative: montage poster printed on warm ivory.
+     Contrast-safe text pairs: plum on ivory/paper (12.9+), plum on sage (6.4),
+     plum on coral (4.9) and coral on plum. Never coral/sage text on ivory,
+     never ivory text on coral/sage. */
+  --color-cr-ivory: #f6f0e8;
+  --color-cr-paper: #fffaf4;
+  --color-cr-coral: #ec7056;
+  --color-cr-plum: #302536;
+  --color-cr-sage: #a5af99;
   --font-cr-display: 'Unbounded Variable', 'Unbounded Variable Fallback', sans-serif;
   --font-cr-text: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
 }

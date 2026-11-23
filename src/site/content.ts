@@ -158,6 +158,16 @@ export function categoryLabel(id: string): string {
   return content.categories.find((c) => c.id === id)?.label ?? id;
 }
 
+/**
+ * Shown above the portfolio in every concept while projects are placeholders:
+ * the demo projects are invented layout examples, not Anna's actual work.
+ */
+export const DEMO_WORK_NOTE =
+  'Проекты ниже вымышлены и показывают только макет. Это не работы Анны: их заменят реальные, когда она пришлёт материалы.';
+
+/** Label for each invented project (frames and captions). */
+export const DEMO_PROJECT_LABEL = 'вымышленный проект';
+
 /** Shared section anchors: identical ids in every concept (used by nav and tests). */
 export const SECTIONS = [
   { id: 'showreel', label: 'Шоурил' },

@@ -1,8 +1,12 @@
 import { test as base, expect } from '@playwright/test';
 
 interface Fixtures {
-  /** Issues matching these patterns are expected and ignored (e.g. on the 404 page). */
-  allowedIssues: RegExp[];
+  /**
+   * Issues matching this pattern are expected and ignored (e.g. on the 404
+   * page). A single RegExp on purpose: Playwright reads a two-element array
+   * in test.use() as a [value, options] tuple.
+   */
+  allowedIssue: RegExp | null;
   pageIssues: string[];
 }
 
@@ -12,9 +16,9 @@ interface Fixtures {
  * image paths). Every test fails if any unexpected issue occurs.
  */
 export const test = base.extend<Fixtures>({
-  allowedIssues: [[], { option: true }],
+  allowedIssue: [null, { option: true }],
   pageIssues: [
-    async ({ page, baseURL, allowedIssues }, use) => {
+    async ({ page, baseURL, allowedIssue }, use) => {
       const issues: string[] = [];
       const origin = baseURL ? new URL(baseURL).origin : '';
       page.on('console', (msg) => {
@@ -35,7 +39,7 @@ export const test = base.extend<Fixtures>({
         }
       });
       await use(issues);
-      const unexpected = issues.filter((i) => !allowedIssues.some((re) => re.test(i)));
+      const unexpected = issues.filter((issue) => !allowedIssue?.test(issue));
       expect(unexpected, 'page produced errors or broken requests').toEqual([]);
     },
     { auto: true },

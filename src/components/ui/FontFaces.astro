@@ -1,0 +1,20 @@
+---
+/**
+ * Emits a page's font declarations into <head>: preload links for the
+ * critical file(s) and inline @font-face rules (swap + fallback metrics).
+ * Usage: <FontFaces slot="head" set={fontSets.cinematic} />
+ */
+import { fontFaceCss, type FontSet } from '../../lib/fonts';
+
+export interface Props {
+  set: FontSet;
+}
+
+const { set } = Astro.props;
+const css = fontFaceCss(set.faces, set.fallbacks);
+---
+
+{set.preload.map((href) => (
+  <link rel="preload" href={href} as="font" type="font/woff2" crossorigin />
+))}
+<style is:inline set:html={css} />

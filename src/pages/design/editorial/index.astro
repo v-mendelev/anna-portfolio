@@ -1,11 +1,19 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import DemoPlaceholder from '../../../components/demo/DemoPlaceholder.astro';
+import EditorialPage from '../../../components/demo/editorial/EditorialPage.astro';
+import FontFaces from '../../../components/ui/FontFaces.astro';
 import { getDemo } from '../../../site/get-demo';
+import { fontSets } from '../../../site/fonts';
 
 const demo = getDemo('editorial');
 ---
 
-<BaseLayout title={`Демо: ${demo.title}`}>
-  <DemoPlaceholder demo={demo} />
+<BaseLayout
+  title={`Демо: ${demo.title}`}
+  bodyClass="bg-ed-paper text-ed-ink"
+  themeColor="#f5f6f3"
+  skipLinkClass="bg-ed-water text-ed-paper focus-visible:outline-ed-water"
+>
+  <FontFaces slot="head" set={fontSets.editorial} />
+  <EditorialPage />
 </BaseLayout>

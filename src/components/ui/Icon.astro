@@ -1,0 +1,35 @@
+---
+/** Authored SVG icons: one 24px grid, 1.5px stroke, round caps. */
+export interface Props {
+  name: 'play' | 'close' | 'menu' | 'arrow' | 'back' | 'plus';
+  class?: string;
+  /** Accessible label; omit for decorative icons. */
+  label?: string;
+}
+
+const { name, class: className = 'size-5', label } = Astro.props;
+const paths: Record<Props['name'], string> = {
+  play: 'M8 5.5v13l10.5-6.5L8 5.5Z',
+  close: 'M6 6l12 12M18 6 6 18',
+  menu: 'M4 8h16M4 16h16',
+  arrow: 'M5 12h13M13 6l6 6-6 6',
+  back: 'M19 12H6M11 6l-6 6 6 6',
+  plus: 'M12 5v14M5 12h14',
+};
+---
+
+<svg
+  class={className}
+  viewBox="0 0 24 24"
+  fill={name === 'play' ? 'currentColor' : 'none'}
+  stroke="currentColor"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : 'true'}
+  focusable="false"
+>
+  <path d={paths[name]}></path>
+</svg>

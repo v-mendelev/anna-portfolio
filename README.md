@@ -22,7 +22,7 @@ git clone git@github-personal:v-mendelev/anna-portfolio.git
 cd anna-portfolio
 pnpm install
 pnpm test:e2e:install   # один раз: браузеры Playwright (Chromium + WebKit)
-pnpm dev                # http://localhost:4321/design/
+pnpm dev                # http://127.0.0.1:4321/design/
 ```
 
 `github-personal` — SSH Host alias для личного GitHub-ключа (см. DEPLOYMENT.md).
@@ -36,10 +36,16 @@ pnpm dev                      # быстрый режим разработки
 pnpm build; pnpm preview
 ```
 
-- Выбор концепции: http://localhost:4321/design/
-- Cinematic: http://localhost:4321/design/cinematic/
-- Editorial: http://localhost:4321/design/editorial/
-- Creative: http://localhost:4321/design/creative/
+- Выбор концепции: http://127.0.0.1:4321/design/
+- Cinematic: http://127.0.0.1:4321/design/cinematic/
+- Editorial: http://127.0.0.1:4321/design/editorial/
+- Creative: http://127.0.0.1:4321/design/creative/
+
+Dev- и preview-сервер слушают `127.0.0.1:4321` (`server.host` в `astro.config.ts`):
+на Windows `localhost` разрешается в `::1`, и без этого сервер был доступен только по IPv6.
+Для доступа из локальной сети: `pnpm dev --host`. Если PowerShell блокирует `pnpm.ps1`
+(политика выполнения скриптов), запускайте `pnpm.cmd dev`. Пока dev-сервер запущен,
+E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm test:e2e`.
 
 Мобильный вид — DevTools (F12 → Toggle device toolbar) или `pnpm screenshots`
 (см. TESTING.md). Все работы, отзывы и контакты пока заглушки с меткой «Заглушка».

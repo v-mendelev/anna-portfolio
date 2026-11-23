@@ -17,40 +17,58 @@ import { SECTIONS, categoryLabel, content, serviceTitle } from '../../../site/co
 
 const { person, services, projects, travel, testimonials, contacts } = content;
 const categories = usedCategories(content.categories, projects);
+const navLinks = SECTIONS.filter((s) => ['work', 'services', 'travel', 'contact'].includes(s.id));
 const bands = [
   'bg-cr-blue text-cr-white -rotate-3',
   'bg-cr-ink text-cr-yellow rotate-2',
   'bg-cr-white text-cr-ink -rotate-2',
-  'bg-cr-blue text-cr-white rotate-3',
+  'bg-cr-ink text-cr-yellow rotate-3',
 ];
 const tilts = ['-rotate-2', 'rotate-1', 'rotate-2', '-rotate-1', 'rotate-1', '-rotate-2'];
 const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow';
 ---
 
 <div class="cr overflow-x-clip bg-cr-yellow font-cr-text text-cr-ink" data-concept="creative">
-  <header class="absolute inset-x-0 top-0 z-40" data-site-header>
+  <header class="pointer-events-none fixed inset-x-0 top-0 z-40" data-site-header>
     <div class="mx-auto flex max-w-wide items-center justify-between px-4 pt-4 sm:px-8 sm:pt-6">
       <a
         href="#top"
-        class="grid size-12 place-items-center rounded-full bg-cr-blue font-cr-display text-sm font-bold text-cr-white"
-        aria-label={person.name}
+        class="pointer-events-auto grid size-12 place-items-center rounded-full bg-cr-blue font-cr-display text-sm font-bold text-cr-white ring-2 ring-cr-yellow"
+        aria-label={`${person.name}: в начало страницы`}
       >
         АШ
       </a>
-      <button
-        type="button"
-        class="flex min-h-11 items-center gap-2 rounded-full bg-cr-ink px-5 text-sm font-medium text-cr-yellow"
-        data-menu-toggle
-        aria-controls="cr-menu"
-        aria-expanded="false"
-      >
-        <Icon name="menu" class="size-4" />
-        Меню
-      </button>
+      <div class="pointer-events-auto flex items-center gap-1 rounded-full bg-cr-ink p-1 ring-2 ring-cr-yellow">
+        <nav aria-label="Разделы" class="hidden lg:flex">
+          {navLinks.map((s) => (
+            <a href={`#${s.id}`} class="cr-navlink">
+              {s.label}
+            </a>
+          ))}
+        </nav>
+        <button
+          type="button"
+          class="flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-medium text-cr-yellow"
+          data-menu-toggle
+          aria-controls="cr-menu"
+          aria-expanded="false"
+        >
+          <Icon name="menu" class="size-4" />
+          Меню
+        </button>
+      </div>
     </div>
   </header>
 
-  <div id="cr-menu" class="fixed inset-0 z-50 overflow-y-auto bg-cr-blue text-cr-white" hidden>
+  <div
+    id="cr-menu"
+    class="fixed inset-0 z-50 overflow-y-auto bg-cr-blue text-cr-white"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Меню"
+    data-menu-modal
+    hidden
+  >
     <div class="mx-auto flex max-w-wide items-center justify-between px-4 pt-4 sm:px-8 sm:pt-6">
       <span class="font-cr-display text-sm font-bold">{person.name}</span>
       <button
@@ -87,11 +105,11 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
         <div class="relative z-10 col-span-12 lg:col-span-7">
           <h1 class="cr-title font-cr-display leading-[0.88] font-black uppercase">
             <span class="block text-[clamp(1.75rem,7vw,3.5rem)]">Анна</span>
-            <span class="block -rotate-6 text-[clamp(2rem,10.6vw,6rem)] tracking-[-0.03em] lg:text-[clamp(3rem,6.4vw,6rem)]">
+            <span class="block -rotate-6 text-[clamp(2rem,10.6vw,6rem)] tracking-[-0.03em] lg:text-[clamp(3rem,6vw,5.5rem)]">
               Шеленкова
             </span>
           </h1>
-          <p class="mt-10 max-w-[36ch] text-lg leading-relaxed font-medium">
+          <p class="mt-10 max-w-[36ch] text-lg leading-relaxed font-medium lg:mt-14">
             Видеограф. Снимаю, монтирую и озвучиваю. Выезжаю на съёмки для туристических компаний.
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
@@ -185,12 +203,12 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
         <p
           class="mt-3 text-sm font-medium"
           data-filter-status
-          data-template="В монтаже кадров: {n}"
+          data-template="Показано работ: {n}"
           aria-live="polite"
         >
-          В монтаже кадров: {projects.length}
+          Показано работ: {projects.length}
         </p>
-        <p class="mt-1 text-sm">Нажмите на кадр, чтобы вытащить его вперёд.</p>
+        <p class="mt-1 text-sm">Нажмите на кадр, чтобы узнать, что я делала в проекте.</p>
         <ul class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-project-list>
           {projects.map((p, i) => (
             <li data-category={p.category}>
@@ -208,12 +226,15 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
                 />
                 <h3 class="mt-3 font-cr-display text-base leading-tight font-bold">{p.title}</h3>
                 <p class="mt-1 text-sm">{categoryLabel(p.category)}</p>
-                <p class="cr-card-more mt-2 text-sm">{p.roles.map(serviceTitle).join(', ')}</p>
+                <p class="cr-card-more mt-2 text-sm" id={`cr-more-${p.id}`}>
+                  Что я делала: {p.roles.map(serviceTitle).join(', ').toLowerCase()}
+                </p>
                 <button
                   type="button"
                   class="absolute inset-0"
-                  aria-pressed="false"
-                  aria-label={`Вытащить вперёд: ${p.title}`}
+                  aria-expanded="false"
+                  aria-controls={`cr-more-${p.id}`}
+                  aria-label={`Подробнее о проекте: ${p.title}`}
                   data-card-toggle
                 />
               </article>
@@ -231,7 +252,7 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
         {services.map((s, i) => (
           <li class:list={['-mx-[5%] px-[5%] py-8 sm:py-10', bands[i % bands.length]]}>
             <div class="mx-auto grid max-w-wide items-end gap-4 px-4 sm:px-8 lg:grid-cols-12">
-              <h3 class="cr-slide font-cr-display text-[clamp(1.6rem,8.2vw,5.5rem)] leading-[0.95] font-black uppercase lg:col-span-7 lg:text-[clamp(2rem,4.2vw,4rem)]">
+              <h3 class="cr-slide font-cr-display text-[clamp(1.6rem,8.2vw,5.5rem)] leading-none font-black uppercase lg:col-span-7 lg:text-[clamp(2rem,4.2vw,4rem)]">
                 {s.displayTitle ?? s.title}
               </h3>
               <div class="lg:col-span-5">
@@ -346,7 +367,7 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
         </p>
         <ul class="mt-12 grid gap-4 sm:grid-cols-3" data-contacts>
           {contacts.map((c) => (
-            <li class="rounded-2xl border-2 border-cr-yellow p-5">
+            <li class="border-2 border-cr-yellow p-5">
               <p class="font-cr-display text-xl font-bold">{c.label}</p>
               <p class="mt-2 text-sm text-cr-white">
                 {c.href ? (
@@ -420,13 +441,13 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
   const toggles = [...document.querySelectorAll<HTMLButtonElement>('[data-card-toggle]')];
   for (const toggle of toggles) {
     toggle.addEventListener('click', () => {
-      const pressed = toggle.getAttribute('aria-pressed') === 'true';
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
       for (const other of toggles) {
-        other.setAttribute('aria-pressed', 'false');
+        other.setAttribute('aria-expanded', 'false');
         other.closest('[data-card]')?.removeAttribute('data-front');
       }
-      if (!pressed) {
-        toggle.setAttribute('aria-pressed', 'true');
+      if (!expanded) {
+        toggle.setAttribute('aria-expanded', 'true');
         toggle.closest('[data-card]')?.setAttribute('data-front', '');
       }
     });
@@ -493,6 +514,22 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
     transform: rotate(0deg) scale(1.04);
     box-shadow: 0 30px 60px -25px rgb(26 26 26 / 0.55);
   }
+  .cr-card:not([data-front]) .cr-card-more {
+    display: none;
+  }
+  .cr-navlink {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-cr-yellow);
+  }
+  .cr-navlink:hover {
+    background: color-mix(in oklab, var(--color-cr-yellow) 18%, transparent);
+  }
   .cr-card[data-front] h3 {
     color: var(--color-cr-blue);
   }
@@ -514,7 +551,11 @@ const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow'
     /* Service words slide along their diagonal bands with scroll. */
     @supports (animation-timeline: view()) {
       .cr-slide {
-        animation: cr-slide linear both;
+        /* Longhands on purpose: the minifier folds a shorthand + animation-timeline
+           into one invalid shorthand and the scroll animation silently dies. */
+        animation-name: cr-slide;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
         animation-timeline: view();
         animation-range: entry 0% exit 100%;
       }

@@ -65,6 +65,8 @@ contact` (`SECTIONS`). Различаются только визуальный 
 
 Общие механики — в `src/lib/ui/` (`menu.ts`, `dialog.ts`, `filter.ts`) и
 `src/components/ui/` (`FootageFrame`, `PlaceholderTag`, `Icon`, `FontFaces`).
+Полноэкранные меню помечены `data-menu-modal`: пока меню открыто, остальная
+страница получает `inert` (фокус и скринридер остаются в меню).
 Движение: только при `prefers-reduced-motion: no-preference`; при `reduce`
 анимаций нет вообще (проверяется E2E через `document.getAnimations()`).
 

@@ -25,7 +25,10 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
     data-site-header
   >
     <div class="mx-auto flex max-w-wide items-center justify-between gap-6 px-4 pt-4 sm:px-8">
-      <a href="#top" class="font-cine-display text-2xl leading-none italic">
+      <a
+        href="#top"
+        class="inline-flex min-h-11 items-center font-cine-display text-2xl leading-none italic"
+      >
         {person.name}
       </a>
       <nav aria-label="Разделы" class="hidden items-center gap-7 text-sm lg:flex">
@@ -48,7 +51,15 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
     </div>
   </header>
 
-  <div id="cine-menu" class="fixed inset-0 z-50 overflow-y-auto bg-cine-void" hidden>
+  <div
+    id="cine-menu"
+    class="fixed inset-0 z-50 overflow-y-auto bg-cine-void"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Меню"
+    data-menu-modal
+    hidden
+  >
     <div class="flex items-center justify-between px-4 pt-4 sm:px-8">
       <span class="font-cine-display text-2xl italic">{person.name}</span>
       <button
@@ -87,6 +98,7 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
           ratio="auto"
           class="h-full w-full"
           description="Фоновое видео: фрагмент шоурила"
+          horizon="soft"
           placeholderDetail="фоновое видео"
           tagClass="absolute top-20 right-4 bg-black/60 px-2 py-1 text-xs text-cine-screen sm:right-8"
           eager
@@ -184,11 +196,10 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
                   placeholderDetail="кадр из проекта"
                   tagClass="absolute top-3 left-3 bg-black/60 px-2 py-1 text-xs text-cine-screen"
                 >
-                  <p class="absolute inset-x-0 bottom-[9%] px-4 text-center">
+                  <h3 class="absolute inset-x-0 bottom-[9%] px-4 text-center">
                     <span class="cine-subtitle">{p.title}</span>
-                  </p>
+                  </h3>
                 </FootageFrame>
-                <h3 class="sr-only">{p.title}</h3>
                 <p class="mt-4 text-sm text-cine-dim">
                   {categoryLabel(p.category)}
                   {p.place && <span>, {p.place.toLowerCase()}</span>}
@@ -232,7 +243,7 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
             Съёмка путешествий
           </h2>
           <p class="mt-6 max-w-[40ch] text-lg leading-relaxed">{travel.intro}</p>
-          <h3 class="mt-8 font-cine-display text-2xl italic">Что получите</h3>
+          <h3 class="mt-8 text-sm font-medium tracking-wide text-cine-dim">Что получите</h3>
           <ul class="mt-2 space-y-1 text-cine-screen/85">
             {travel.formats.map((f) => (
               <li>{f}</li>
@@ -250,8 +261,8 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
           <ol class="mt-10 grid gap-8 sm:grid-cols-2">
             {travel.steps.map((step, i) => (
               <li class="border-t border-cine-line pt-4">
-                <h3 class="font-cine-display text-2xl italic">
-                  <span class="mr-2 text-cine-dim">{i + 1}</span>
+                <h3 class="text-lg font-medium">
+                  <span class="mr-2 text-cine-dim tabular-nums">{i + 1}</span>
                   {step.title}
                 </h3>
                 <p class="mt-2 text-cine-screen/85">{step.text}</p>
@@ -287,7 +298,7 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
       <div class="mx-auto mt-14 grid max-w-5xl gap-14 md:grid-cols-2">
         {testimonials.map((t) => (
           <figure class="text-center">
-            <blockquote class="font-cine-display text-2xl leading-snug font-light italic sm:text-3xl">
+            <blockquote class="font-cine-display text-2xl leading-snug italic sm:text-3xl">
               {t.quote}
             </blockquote>
             <figcaption class="mt-5 text-sm text-cine-dim">
@@ -315,7 +326,7 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
         <ul class="mt-12 divide-y divide-cine-line border-y border-cine-line" data-contacts>
           {contacts.map((c) => (
             <li class="flex flex-wrap items-baseline justify-between gap-2 py-5">
-              <span class="font-cine-display text-3xl italic">{c.label}</span>
+              <span class="text-xl font-medium">{c.label}</span>
               {c.href ? (
                 <a href={c.href} class="cine-link">
                   {c.value}
@@ -439,7 +450,7 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
   }
 
   .cine-chip {
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     border-radius: 999px;
     border: 1px solid var(--color-cine-line);
     padding: 0 1rem;
@@ -473,13 +484,21 @@ const heroTone = { from: '#071a22', to: '#c7a27a' };
   @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: view()) {
       .cine-screen {
-        animation: cine-recede linear both;
+        /* Longhands on purpose: the minifier folds a shorthand + animation-timeline
+           into one invalid shorthand and the scroll animation silently dies. */
+        animation-name: cine-recede;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
         animation-timeline: view();
         animation-range: exit 0% exit 90%;
         transform-origin: 50% 35%;
       }
       .cine-title {
-        animation: cine-title-out linear both;
+        /* Longhands on purpose: the minifier folds a shorthand + animation-timeline
+           into one invalid shorthand and the scroll animation silently dies. */
+        animation-name: cine-title-out;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
         animation-timeline: view();
         animation-range: exit 0% exit 45%;
       }

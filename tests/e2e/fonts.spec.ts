@@ -140,12 +140,19 @@ test.describe('@smoke fonts: fallback metrics', () => {
         }));
         const worstSection = deltas.reduce((a, b) => (b.delta > a.delta ? b : a));
         const worst = worstSection.delta;
+        const pageDelta = deltas.find((d) => d.id === 'main')?.delta ?? 0;
         test.info().annotations.push({
           type: 'max-section-delta',
-          description: `${worst.toFixed(4)} (${worstSection.id})`,
+          description: `${worst.toFixed(4)} (${worstSection.id}); page ${pageDelta.toFixed(4)}`,
         });
+        // Calibrated on Windows/Chromium: with fallbacks the page height changes
+        // <= 0.33% and any section <= 2.1%; without them 0.66-2.4% / 3.9-7.7%.
+        // Linux CI renders slightly differently, hence the section headroom.
+        expect(pageDelta, `page height change ${(pageDelta * 100).toFixed(2)}%`).toBeLessThan(
+          0.008,
+        );
         expect(worst, `largest section height change ${(worst * 100).toFixed(1)}%`).toBeLessThan(
-          0.03,
+          0.05,
         );
       });
     }

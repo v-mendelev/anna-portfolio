@@ -29,6 +29,11 @@ export interface ProjectCategory {
 export interface FrameTone {
   from: string;
   to: string;
+  /** Horizon height in % of the frame (default 58). Varies placeholder compositions. */
+  horizon?: number;
+  /** Light source position in % (defaults 72 / 30). */
+  sunX?: number;
+  sunY?: number;
 }
 
 export interface Project {

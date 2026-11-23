@@ -136,6 +136,27 @@ for (const slug of DEMO_SLUGS) {
   });
 }
 
+test.describe('@smoke scroll-linked motion', () => {
+  // Regression: a minifier once folded `animation` + `animation-timeline` into an
+  // invalid shorthand, so the scroll animations silently never ran.
+  for (const [slug, selector, scrollTo] of [
+    ['cinematic', '.cine-screen', '#top'],
+    ['creative', '.cr-slide', '#services'],
+  ] as const) {
+    test(`${slug}: ${selector} is animated by scroll where supported`, async ({ page }) => {
+      await page.goto(`design/${slug}/`);
+      const supported = await page.evaluate(() => CSS.supports('animation-timeline: view()'));
+      test.skip(!supported, 'Scroll-driven animations are not supported in this browser');
+
+      await page.locator(scrollTo).scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollBy(0, 200));
+      const target = page.locator(selector).first();
+      expect(await target.evaluate((el) => getComputedStyle(el).animationName)).not.toBe('none');
+      expect(await target.evaluate((el) => el.getAnimations().length)).toBeGreaterThan(0);
+    });
+  }
+});
+
 test.describe('@smoke concept-specific interactions', () => {
   test('cinematic: services are set as a credits block', async ({ page }) => {
     await page.goto('design/cinematic/');
@@ -154,15 +175,23 @@ test.describe('@smoke concept-specific interactions', () => {
     await expect(entry).not.toHaveAttribute('open', '');
   });
 
-  test('creative: a montage frame can be pulled forward, one at a time', async ({ page }) => {
+  test('creative: a montage frame opens to show what was done, one at a time', async ({ page }) => {
     await page.goto('design/creative/');
     const toggles = page.locator('[data-card-toggle]');
+    const details = page.locator('.cr-card-more');
+    await expect(details.first()).toBeHidden();
+
     await toggles.nth(0).click();
-    await expect(toggles.nth(0)).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'true');
+    await expect(details.nth(0)).toBeVisible();
+    await expect(details.nth(0)).toContainText('Что я делала');
     await expect(page.locator('[data-card][data-front]')).toHaveCount(1);
+
     await toggles.nth(1).click();
-    await expect(toggles.nth(0)).toHaveAttribute('aria-pressed', 'false');
-    await expect(toggles.nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'false');
+    await expect(details.nth(0)).toBeHidden();
+    await expect(toggles.nth(1)).toHaveAttribute('aria-expanded', 'true');
+
     await toggles.nth(1).click();
     await expect(page.locator('[data-card][data-front]')).toHaveCount(0);
   });

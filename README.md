@@ -28,6 +28,22 @@ pnpm dev                # http://localhost:4321/design/
 `github-personal` — SSH Host alias для личного GitHub-ключа (см. DEPLOYMENT.md).
 Обычный `git@github.com:...` тоже работает, если ваш ключ по умолчанию подходит.
 
+## Просмотр дизайн-концепций локально
+
+```powershell
+pnpm dev                      # быстрый режим разработки
+# или как в продакшене (статическая сборка):
+pnpm build; pnpm preview
+```
+
+- Выбор концепции: http://localhost:4321/design/
+- Cinematic: http://localhost:4321/design/cinematic/
+- Editorial: http://localhost:4321/design/editorial/
+- Creative: http://localhost:4321/design/creative/
+
+Мобильный вид — DevTools (F12 → Toggle device toolbar) или `pnpm screenshots`
+(см. TESTING.md). Все работы, отзывы и контакты пока заглушки с меткой «Заглушка».
+
 ## Команды
 
 | Команда                        | Что делает                                                     |
@@ -43,6 +59,7 @@ pnpm dev                # http://localhost:4321/design/
 | `pnpm test`                    | Unit-тесты (Vitest)                                            |
 | `pnpm test:e2e`                | Playwright: smoke, навигация, концепции, шрифты, адаптивность  |
 | `pnpm fonts:metrics`           | Первичный расчёт fallback-метрик шрифтов (см. ARCHITECTURE.md) |
+| `pnpm screenshots`             | Скриншоты всех демо: Chromium + WebKit, desktop + mobile       |
 | `pnpm test:smoke`              | Быстрый smoke в Chromium                                       |
 | `pnpm test:visual`             | Визуальная регрессия (opt-in, см. TESTING.md)                  |
 | `pnpm check`                   | typecheck + lint + format + unit + build                       |

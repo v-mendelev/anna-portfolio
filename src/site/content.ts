@@ -64,7 +64,7 @@ export const content: PortfolioContent = {
       category: 'travel',
       place: 'Побережье',
       roles: ['travel', 'production', 'editing'],
-      tone: { from: '#0f3d4a', to: '#d9b98a' },
+      tone: { from: '#0f3d4a', to: '#d9b98a', horizon: 62, sunX: 70, sunY: 34 },
       placeholder: true,
     },
     {
@@ -73,7 +73,7 @@ export const content: PortfolioContent = {
       category: 'travel',
       place: 'Отель',
       roles: ['travel', 'production'],
-      tone: { from: '#2b1d16', to: '#c9874f' },
+      tone: { from: '#2b1d16', to: '#c9874f', horizon: 74, sunX: 24, sunY: 40 },
       placeholder: true,
     },
     {
@@ -82,7 +82,7 @@ export const content: PortfolioContent = {
       category: 'travel',
       place: 'Горы',
       roles: ['travel', 'editing', 'voice'],
-      tone: { from: '#1d2633', to: '#a9b8c9' },
+      tone: { from: '#1d2633', to: '#a9b8c9', horizon: 44, sunX: 82, sunY: 18 },
       placeholder: true,
     },
     {
@@ -90,7 +90,7 @@ export const content: PortfolioContent = {
       title: 'Бренд-ролик',
       category: 'brand',
       roles: ['production', 'editing'],
-      tone: { from: '#26122a', to: '#d46a6a' },
+      tone: { from: '#26122a', to: '#d46a6a', horizon: 68, sunX: 50, sunY: 52 },
       placeholder: true,
     },
     {
@@ -98,7 +98,7 @@ export const content: PortfolioContent = {
       title: 'Монтаж из материала клиента',
       category: 'editing',
       roles: ['editing'],
-      tone: { from: '#141c14', to: '#8fa66b' },
+      tone: { from: '#141c14', to: '#8fa66b', horizon: 52, sunX: 30, sunY: 22 },
       placeholder: true,
     },
     {
@@ -106,7 +106,7 @@ export const content: PortfolioContent = {
       title: 'Озвучка презентации',
       category: 'voice',
       roles: ['voice'],
-      tone: { from: '#1a1a2e', to: '#7a86c2' },
+      tone: { from: '#1a1a2e', to: '#7a86c2', horizon: 80, sunX: 62, sunY: 46 },
       placeholder: true,
     },
   ],

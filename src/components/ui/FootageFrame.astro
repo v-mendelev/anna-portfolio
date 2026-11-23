@@ -29,6 +29,8 @@ export interface Props {
   class?: string;
   /** Load eagerly (first viewport only). */
   eager?: boolean;
+  /** Placeholder horizon: "hard" reads as a scene, "soft" sits quietly behind text. */
+  horizon?: 'hard' | 'soft';
 }
 
 const {
@@ -43,9 +45,17 @@ const {
   class: className,
   eager = false,
   tag = true,
+  horizon = 'hard',
 } = Astro.props;
 
-const style = `aspect-ratio: ${ratio}; --tone-from: ${tone.from}; --tone-to: ${tone.to};`;
+const style = [
+  `aspect-ratio: ${ratio}`,
+  `--tone-from: ${tone.from}`,
+  `--tone-to: ${tone.to}`,
+  `--horizon: ${tone.horizon ?? 58}%`,
+  `--sun-x: ${tone.sunX ?? 72}%`,
+  `--sun-y: ${tone.sunY ?? 30}%`,
+].join('; ');
 ---
 
 <figure
@@ -73,7 +83,11 @@ const style = `aspect-ratio: ${ratio}; --tone-from: ${tone.from}; --tone-to: ${t
       decoding="async"
     />
   ) : (
-    <div class="footage-paint absolute inset-0" role="img" aria-label={description} />
+    <div
+      class:list={['footage-paint absolute inset-0', horizon === 'soft' && 'footage-paint--soft']}
+      role="img"
+      aria-label={description}
+    />
   )}
   <slot />
   {placeholder && tag && <PlaceholderTag detail={placeholderDetail} class={tagClass} />}
@@ -85,16 +99,30 @@ const style = `aspect-ratio: ${ratio}; --tone-from: ${tone.from}; --tone-to: ${t
   .footage-paint {
     background:
       radial-gradient(
-        120% 70% at 72% 30%,
+        120% 70% at var(--sun-x) var(--sun-y),
         color-mix(in oklab, var(--tone-to) 85%, white) 0%,
         transparent 45%
       ),
       linear-gradient(
         to bottom,
         color-mix(in oklab, var(--tone-from) 70%, var(--tone-to)) 0%,
-        var(--tone-to) 58%,
-        color-mix(in oklab, var(--tone-from) 85%, black) 58.4%,
+        var(--tone-to) var(--horizon),
+        color-mix(in oklab, var(--tone-from) 85%, black) calc(var(--horizon) + 0.6%),
         var(--tone-from) 100%
+      );
+  }
+  .footage-paint--soft {
+    background:
+      radial-gradient(
+        120% 70% at var(--sun-x) var(--sun-y),
+        color-mix(in oklab, var(--tone-to) 85%, white) 0%,
+        transparent 45%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--tone-from) 70%, var(--tone-to)) 0%,
+        var(--tone-to) 45%,
+        var(--tone-from) 85%
       );
   }
 </style>

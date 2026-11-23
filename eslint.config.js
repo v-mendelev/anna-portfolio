@@ -14,6 +14,7 @@ export default defineConfig(
       'playwright-report/',
       'test-results/',
       'coverage/',
+      'screenshots/',
       'pnpm-lock.yaml',
     ],
   },

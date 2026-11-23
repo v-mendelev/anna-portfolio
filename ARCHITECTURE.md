@@ -175,6 +175,8 @@ dev-инструмента (например, `subset-font`) и отдельно
 4. Заменить `src/pages/*` под новый проект, обновить `tests/e2e/routes.ts`.
 5. Обновить `package.json` (`name`, `description`) и `README.md`.
 6. Включить Pages (Source: GitHub Actions) и rulesets — см. DEPLOYMENT.md.
+7. По желанию — автоматическая доставка одобренных изменений: свой GitHub App
+   и переменные `DELIVERY_*` — см. DELIVERY.md («Перенос в другой проект»).
 
 Ничего в `src/lib/`, `src/components/ui/`, `src/layouts/`, `.github/`, `tests/`
 не содержит данных конкретного клиента.

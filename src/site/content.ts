@@ -59,6 +59,15 @@ export const content: PortfolioContent = {
   ],
 
   projects: [
+    // Lead frame is not a travel shoot: travel is a new direction (see HERO).
+    {
+      id: 'brand-film',
+      title: 'Бренд-ролик',
+      category: 'brand',
+      roles: ['production', 'editing'],
+      tone: { from: '#26122a', to: '#d46a6a', horizon: 68, sunX: 50, sunY: 52 },
+      placeholder: true,
+    },
     {
       id: 'coast',
       title: 'Ролик о побережье',
@@ -83,14 +92,6 @@ export const content: PortfolioContent = {
       place: 'Горы',
       roles: ['travel', 'editing', 'voice'],
       tone: { from: '#1d2633', to: '#a9b8c9', horizon: 44, sunX: 82, sunY: 18 },
-      placeholder: true,
-    },
-    {
-      id: 'brand-film',
-      title: 'Бренд-ролик',
-      category: 'brand',
-      roles: ['production', 'editing'],
-      tone: { from: '#26122a', to: '#d46a6a', horizon: 68, sunX: 50, sunY: 52 },
       placeholder: true,
     },
     {

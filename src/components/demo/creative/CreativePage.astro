@@ -233,7 +233,7 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
         <p class="mt-1 text-sm">Нажмите на кадр, чтобы узнать, что я делаю в таком проекте.</p>
         <ul class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-project-list>
           {projects.map((p, i) => (
-            <li data-category={p.category} class="max-sm:w-[86%] max-sm:even:ml-auto">
+            <li data-category={p.category} class="cr-montage-item">
               <article
                 class:list={[
                   'cr-card relative border-2 border-cr-plum bg-cr-paper p-3 pb-4',
@@ -563,6 +563,17 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
   .cr-chip[aria-pressed='true'] {
     background: var(--color-cr-plum);
     color: var(--color-cr-ivory);
+  }
+
+  /* Phone montage: frames at 86% width, alternating sides. Count only visible
+     items, so the stagger survives the filter (filtered cards get [hidden]). */
+  @media (max-width: 39.99rem) {
+    .cr-montage-item {
+      width: 86%;
+    }
+    .cr-montage-item:nth-child(even of :not([hidden])) {
+      margin-left: auto;
+    }
   }
 
   .cr-card {

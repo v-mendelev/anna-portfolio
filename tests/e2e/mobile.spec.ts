@@ -318,5 +318,17 @@ test.describe('@smoke concept-specific phone layout', () => {
       .locator('#work [data-card]')
       .evaluateAll((cards) => cards.map((c) => c.getBoundingClientRect().width / innerWidth));
     for (const w of widths) expect(w).toBeLessThanOrEqual(0.9);
+    // The stagger must alternate among the cards that are visible, also when
+    // a filter hides some of them (hidden items still count for :nth-child).
+    for (const filter of ['all', 'travel', 'brand']) {
+      await page.locator(`#work [data-filter="${filter}"]`).click();
+      const lefts = await page
+        .locator('#work li[data-category]:visible')
+        .evaluateAll((items) => items.map((li) => Math.round(li.getBoundingClientRect().left)));
+      expect(lefts.length, `visible cards for ${filter}`).toBeGreaterThan(1);
+      for (let i = 1; i < lefts.length; i++) {
+        expect(lefts[i], `card ${i} alternates sides (${filter})`).not.toBe(lefts[i - 1]);
+      }
+    }
   });
 });

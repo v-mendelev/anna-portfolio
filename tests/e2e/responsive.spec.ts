@@ -34,6 +34,27 @@ for (const width of VIEWPORT_WIDTHS) {
           expect(lb.height, 'tap target too small').toBeGreaterThanOrEqual(16);
         }
 
+        // No heading or paragraph may overflow its own box (catches long Russian
+        // words in display sizes even when a parent clips the overflow).
+        // Transforms (decorative rotation, scroll-linked slides) are neutralised
+        // for this measurement: the question is whether the text itself fits.
+        const overflowing = await page.evaluate(() => {
+          for (const animation of document.getAnimations()) animation.cancel();
+          const neutral = document.createElement('style');
+          neutral.textContent =
+            '*{transform:none!important;rotate:none!important;translate:none!important;scale:none!important}';
+          document.head.append(neutral);
+          const result = [
+            ...document.querySelectorAll<HTMLElement>('main h1, main h2, main h3, main p, main dt'),
+          ]
+            .filter((el) => el.offsetParent !== null && el.clientWidth > 1)
+            .filter((el) => el.scrollWidth > el.clientWidth + 1)
+            .map((el) => `${el.tagName}: ${el.textContent?.trim().slice(0, 40)}`);
+          neutral.remove();
+          return result;
+        });
+        expect(overflowing, 'text overflows its box').toEqual([]);
+
         // Body text must stay readable (>= 12px) at every width.
         const fontSize = await page.evaluate(() =>
           parseFloat(getComputedStyle(document.body).fontSize),

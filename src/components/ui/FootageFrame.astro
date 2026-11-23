@@ -1,0 +1,100 @@
+---
+/**
+ * A frame of footage. Renders real media when provided (poster image and/or
+ * video), otherwise a painted placeholder in the project's colour story with
+ * a visible "Заглушка" label. No third-party media.
+ */
+import PlaceholderTag from './PlaceholderTag.astro';
+import { withBase } from '../../lib/paths';
+import type { FrameTone } from '../../lib/portfolio';
+
+export interface Props {
+  tone: FrameTone;
+  /** CSS aspect-ratio, e.g. "16 / 9", "2.39 / 1", "4 / 5", "1". */
+  ratio?: string;
+  /** Accessible description of what the frame shows / will show. */
+  description: string;
+  poster?: string;
+  video?: string;
+  placeholder?: boolean;
+  /** Text after the placeholder label, e.g. "кадр из ролика". */
+  placeholderDetail?: string;
+  /** Classes for the placeholder label (position, colours). */
+  tagClass?: string;
+  /**
+   * Render the placeholder label inside the frame. Set false only when the
+   * surrounding caption renders its own PlaceholderTag.
+   */
+  tag?: boolean;
+  class?: string;
+  /** Load eagerly (first viewport only). */
+  eager?: boolean;
+}
+
+const {
+  tone,
+  ratio = '16 / 9',
+  description,
+  poster,
+  video,
+  placeholder = !poster && !video,
+  placeholderDetail,
+  tagClass = 'absolute bottom-3 left-3 rounded-sm bg-black/55 px-2 py-1 text-xs text-white',
+  class: className,
+  eager = false,
+  tag = true,
+} = Astro.props;
+
+const style = `aspect-ratio: ${ratio}; --tone-from: ${tone.from}; --tone-to: ${tone.to};`;
+---
+
+<figure
+  class:list={['footage relative isolate m-0 overflow-hidden', className]}
+  style={style}
+  data-footage
+>
+  {video ? (
+    <video
+      class="absolute inset-0 h-full w-full object-cover"
+      src={withBase(video)}
+      poster={poster ? withBase(poster) : undefined}
+      muted
+      playsinline
+      loop
+      preload="none"
+      aria-label={description}
+    />
+  ) : poster ? (
+    <img
+      class="absolute inset-0 h-full w-full object-cover"
+      src={withBase(poster)}
+      alt={description}
+      loading={eager ? 'eager' : 'lazy'}
+      decoding="async"
+    />
+  ) : (
+    <div class="footage-paint absolute inset-0" role="img" aria-label={description} />
+  )}
+  <slot />
+  {placeholder && tag && <PlaceholderTag detail={placeholderDetail} class={tagClass} />}
+</figure>
+
+<style>
+  /* Painted stand-in for footage: sky-to-ground grade, a light source and a
+     low horizon, so placeholders read as frames rather than flat gradients. */
+  .footage-paint {
+    background:
+      radial-gradient(
+        120% 70% at 72% 30%,
+        color-mix(in oklab, var(--tone-to) 85%, white) 0%,
+        transparent 45%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--tone-from) 70%, var(--tone-to)) 0%,
+        var(--tone-to) 58%,
+        color-mix(in oklab, var(--tone-from) 85%, black) 58.4%,
+        var(--tone-from) 100%
+      );
+  }
+</style>

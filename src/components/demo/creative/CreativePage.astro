@@ -1,0 +1,531 @@
+---
+/**
+ * Concept C — Creative: "the montage poster".
+ * Built on the grammar of 1920s constructivist film posters (diagonals,
+ * lens circles, heavy type, flat ink on yellow), without any political
+ * symbols. Motion is purposeful and filmic:
+ *  - the showreel opens with an iris wipe from the button you pressed;
+ *  - service words slide along their diagonal bands as you scroll;
+ *  - frames in the montage can be pulled forward to read them.
+ */
+import FootageFrame from '../../ui/FootageFrame.astro';
+import Icon from '../../ui/Icon.astro';
+import PlaceholderTag from '../../ui/PlaceholderTag.astro';
+import { withBase } from '../../../lib/paths';
+import { usedCategories } from '../../../lib/portfolio';
+import { SECTIONS, categoryLabel, content, serviceTitle } from '../../../site/content';
+
+const { person, services, projects, travel, testimonials, contacts } = content;
+const categories = usedCategories(content.categories, projects);
+const bands = [
+  'bg-cr-blue text-cr-white -rotate-3',
+  'bg-cr-ink text-cr-yellow rotate-2',
+  'bg-cr-white text-cr-ink -rotate-2',
+  'bg-cr-blue text-cr-white rotate-3',
+];
+const tilts = ['-rotate-2', 'rotate-1', 'rotate-2', '-rotate-1', 'rotate-1', '-rotate-2'];
+const tag = 'absolute top-2 left-2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow';
+---
+
+<div class="cr overflow-x-clip bg-cr-yellow font-cr-text text-cr-ink" data-concept="creative">
+  <header class="absolute inset-x-0 top-0 z-40" data-site-header>
+    <div class="mx-auto flex max-w-wide items-center justify-between px-4 pt-4 sm:px-8 sm:pt-6">
+      <a
+        href="#top"
+        class="grid size-12 place-items-center rounded-full bg-cr-blue font-cr-display text-sm font-bold text-cr-white"
+        aria-label={person.name}
+      >
+        АШ
+      </a>
+      <button
+        type="button"
+        class="flex min-h-11 items-center gap-2 rounded-full bg-cr-ink px-5 text-sm font-medium text-cr-yellow"
+        data-menu-toggle
+        aria-controls="cr-menu"
+        aria-expanded="false"
+      >
+        <Icon name="menu" class="size-4" />
+        Меню
+      </button>
+    </div>
+  </header>
+
+  <div id="cr-menu" class="fixed inset-0 z-50 overflow-y-auto bg-cr-blue text-cr-white" hidden>
+    <div class="mx-auto flex max-w-wide items-center justify-between px-4 pt-4 sm:px-8 sm:pt-6">
+      <span class="font-cr-display text-sm font-bold">{person.name}</span>
+      <button
+        type="button"
+        class="grid size-11 place-items-center rounded-full bg-cr-white text-cr-ink"
+        data-menu-close
+        aria-label="Закрыть меню"
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <nav aria-label="Меню" class="mx-auto max-w-wide px-4 py-10 sm:px-8">
+      <ul class="space-y-2">
+        {SECTIONS.map((s) => (
+          <li>
+            <a
+              href={`#${s.id}`}
+              class="font-cr-display text-[clamp(2rem,8vw,4.5rem)] leading-tight font-black uppercase hover:text-cr-yellow"
+            >
+              {s.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a href={withBase('/design/')} class="mt-10 inline-flex min-h-11 items-center gap-2 text-sm">
+        <Icon name="back" class="size-4" /> Все концепции
+      </a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <section id="top" class="relative min-h-[100svh] overflow-hidden pt-24 pb-40 sm:pt-28">
+      <div class="mx-auto grid max-w-wide grid-cols-12 items-center gap-y-10 px-4 sm:px-8">
+        <div class="relative z-10 col-span-12 lg:col-span-7">
+          <h1 class="cr-title font-cr-display leading-[0.88] font-black uppercase">
+            <span class="block text-[clamp(1.75rem,7vw,3.5rem)]">Анна</span>
+            <span class="block -rotate-6 text-[clamp(2rem,10.6vw,6rem)] tracking-[-0.03em] lg:text-[clamp(3rem,6.4vw,6rem)]">
+              Шеленкова
+            </span>
+          </h1>
+          <p class="mt-10 max-w-[36ch] text-lg leading-relaxed font-medium">
+            Видеограф. Снимаю, монтирую и озвучиваю. Выезжаю на съёмки для туристических компаний.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              class="cr-btn bg-cr-ink text-cr-yellow"
+              data-dialog-open="cr-reel"
+              data-testid="showreel-open"
+            >
+              <Icon name="play" class="size-4" /> Смотреть шоурил
+            </button>
+            <a href="#contact" class="cr-btn border-2 border-cr-ink">
+              Обсудить проект
+            </a>
+          </div>
+        </div>
+        <div class="relative col-span-12 justify-self-center lg:col-span-5">
+          <div class="cr-lens relative size-[min(78vw,30rem)] rounded-full bg-cr-blue p-[6%]">
+            <FootageFrame
+              tone={{ from: '#173a5c', to: '#f0b25a' }}
+              ratio="1"
+              class="h-full w-full rounded-full"
+              description="Кадр из шоурила"
+              placeholderDetail="кадр"
+              tagClass="absolute bottom-[18%] left-1/2 -translate-x-1/2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow"
+              eager
+            />
+          </div>
+        </div>
+      </div>
+      <div class="cr-band-wrap absolute inset-x-0 bottom-10" aria-hidden="true">
+        <div class="-mx-[5%] -rotate-3 bg-cr-ink py-3 text-cr-yellow">
+          <div class="flex w-max items-center gap-6 px-[6%] font-cr-display text-xl font-black uppercase sm:text-3xl">
+            {services.map((s) => (
+              <>
+                <span>{s.title}</span>
+                <span class="size-3 shrink-0 rounded-full bg-cr-yellow sm:size-4" />
+              </>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="showreel" class="bg-cr-ink text-cr-yellow">
+      <div class="mx-auto grid max-w-wide items-center gap-12 px-4 py-24 sm:px-8 md:grid-cols-2 lg:py-32">
+        <div>
+          <h2 class="font-cr-display text-[clamp(2.5rem,9vw,6rem)] leading-[0.9] font-black uppercase md:text-[clamp(2.5rem,6vw,6rem)]">
+            Шоурил
+          </h2>
+          <p class="mt-6 max-w-[36ch] text-lg text-cr-white">
+            Лучшие кадры из разных проектов: путешествия, бренды, монтаж и голос. Включайте со
+            звуком.
+          </p>
+          <p class="mt-4 text-sm text-cr-white/80">
+            <PlaceholderTag detail="видео появится позже" />
+          </p>
+        </div>
+        <button
+          type="button"
+          class="group relative mx-auto grid aspect-square w-[min(70vw,22rem)] place-items-center rounded-full border-[6px] border-cr-yellow"
+          data-dialog-open="cr-reel"
+          aria-label="Смотреть шоурил"
+        >
+          <span class="grid size-2/3 place-items-center rounded-full bg-cr-yellow text-cr-ink transition-transform duration-300 ease-out group-hover:scale-105">
+            <Icon name="play" class="ml-2 size-14" />
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <section id="work" class="py-24 lg:py-32">
+      <div
+        class="mx-auto max-w-page px-4 sm:px-6 lg:px-8"
+        data-testid="page-container"
+        data-filter-root
+      >
+        <h2 class="font-cr-display text-[clamp(2.5rem,9vw,6rem)] leading-[0.9] font-black uppercase">
+          Работы
+        </h2>
+        <div class="mt-8 flex flex-wrap gap-2" role="group" aria-label="Фильтр работ">
+          <button type="button" class="cr-chip" data-filter="all" aria-pressed="true">
+            Все
+          </button>
+          {categories.map((c) => (
+            <button type="button" class="cr-chip" data-filter={c.id} aria-pressed="false">
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <p
+          class="mt-3 text-sm font-medium"
+          data-filter-status
+          data-template="В монтаже кадров: {n}"
+          aria-live="polite"
+        >
+          В монтаже кадров: {projects.length}
+        </p>
+        <p class="mt-1 text-sm">Нажмите на кадр, чтобы вытащить его вперёд.</p>
+        <ul class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-project-list>
+          {projects.map((p, i) => (
+            <li data-category={p.category}>
+              <article
+                class:list={['cr-card relative bg-cr-white p-3 pb-4', tilts[i % tilts.length]]}
+                data-card
+              >
+                <FootageFrame
+                  tone={p.tone}
+                  ratio="4 / 3"
+                  description={`Кадр из проекта «${p.title}»`}
+                  placeholder={p.placeholder}
+                  placeholderDetail="кадр"
+                  tagClass={tag}
+                />
+                <h3 class="mt-3 font-cr-display text-base leading-tight font-bold">{p.title}</h3>
+                <p class="mt-1 text-sm">{categoryLabel(p.category)}</p>
+                <p class="cr-card-more mt-2 text-sm">{p.roles.map(serviceTitle).join(', ')}</p>
+                <button
+                  type="button"
+                  class="absolute inset-0"
+                  aria-pressed="false"
+                  aria-label={`Вытащить вперёд: ${p.title}`}
+                  data-card-toggle
+                />
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section id="services" class="overflow-x-clip py-20 lg:py-28">
+      <h2 class="mx-auto max-w-wide px-4 font-cr-display text-[clamp(2.5rem,9vw,6rem)] leading-[0.9] font-black uppercase sm:px-8">
+        Услуги
+      </h2>
+      <ul class="mt-14 space-y-6">
+        {services.map((s, i) => (
+          <li class:list={['-mx-[5%] px-[5%] py-8 sm:py-10', bands[i % bands.length]]}>
+            <div class="mx-auto grid max-w-wide items-end gap-4 px-4 sm:px-8 lg:grid-cols-12">
+              <h3 class="cr-slide font-cr-display text-[clamp(1.6rem,8.2vw,5.5rem)] leading-[0.95] font-black uppercase lg:col-span-7 lg:text-[clamp(2rem,4.2vw,4rem)]">
+                {s.displayTitle ?? s.title}
+              </h3>
+              <div class="lg:col-span-5">
+                <p class="text-lg font-medium">{s.summary}</p>
+                <p class="mt-2 text-sm opacity-85">{s.includes.join(', ')}</p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section id="travel" class="bg-cr-blue text-cr-white">
+      <div class="mx-auto max-w-wide px-4 py-24 sm:px-8 lg:py-32">
+        <div class="grid gap-8 lg:grid-cols-12">
+          <h2 class="font-cr-display text-[clamp(1.75rem,8.6vw,6rem)] leading-[0.9] font-black uppercase lg:col-span-12">
+            Путешествия
+          </h2>
+          <p class="max-w-[40ch] text-xl leading-relaxed lg:col-span-6 lg:col-start-7">
+            {travel.intro}
+          </p>
+        </div>
+        <ol class="mt-16 grid gap-10 md:grid-cols-4 md:gap-6">
+          {travel.steps.map((step, i) => (
+            <li class="cr-step" style={`--step: ${i}`}>
+              <span
+                class="grid size-16 place-items-center rounded-full bg-cr-yellow font-cr-display text-2xl font-black text-cr-ink"
+                aria-hidden="true"
+              >
+                {i + 1}
+              </span>
+              <h3 class="mt-4 font-cr-display text-xl font-bold">{step.title}</h3>
+              <p class="mt-2 max-w-[30ch] text-cr-white/90">{step.text}</p>
+            </li>
+          ))}
+        </ol>
+        <div class="mt-16 flex flex-wrap gap-3">
+          {travel.formats.map((f) => (
+            <span class="rounded-full bg-cr-white px-4 py-2 text-sm font-medium text-cr-ink">
+              {f}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="py-24 lg:py-32">
+      <div class="mx-auto grid max-w-wide items-center gap-12 px-4 sm:px-8 md:grid-cols-12">
+        <div class="md:col-span-5">
+          <div class="relative size-[min(70vw,24rem)] rounded-full border-[10px] border-cr-blue">
+            <FootageFrame
+              tone={{ from: '#3a2a2a', to: '#e8b48c' }}
+              ratio="1"
+              class="h-full w-full rounded-full"
+              description="Портрет Анны"
+              placeholderDetail="фото Анны"
+              tagClass="absolute bottom-[14%] left-1/2 -translate-x-1/2 bg-cr-ink px-2 py-0.5 text-xs text-cr-yellow"
+            />
+          </div>
+        </div>
+        <div class="md:col-span-7">
+          <h2 class="font-cr-display text-[clamp(2.5rem,9vw,6rem)] leading-[0.9] font-black uppercase">
+            Обо мне
+          </h2>
+          <p class="mt-8 max-w-[52ch] text-xl leading-relaxed">{person.bio}</p>
+          {person.placeholderBio && (
+            <PlaceholderTag detail="текст об Анне" class="mt-4 text-sm font-medium" />
+          )}
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews" class="bg-cr-white py-24 lg:py-32">
+      <div class="mx-auto max-w-wide px-4 sm:px-8">
+        <h2 class="font-cr-display text-[clamp(2.5rem,9vw,6rem)] leading-[0.9] font-black uppercase">
+          Отзывы
+        </h2>
+        <div class="mt-14 grid gap-10 md:grid-cols-2">
+          {testimonials.map((t, i) => (
+            <figure
+              class:list={[
+                'border-4 border-cr-ink bg-cr-yellow p-6 sm:p-8',
+                i % 2 ? 'md:mt-16 md:rotate-1' : 'md:-rotate-1',
+              ]}
+            >
+              <blockquote class="font-cr-display text-xl leading-snug font-bold sm:text-2xl">
+                {t.quote}
+              </blockquote>
+              <figcaption class="mt-5 text-sm font-medium">
+                {t.author}
+                {t.company && `, ${t.company}`}
+                {t.placeholder && (
+                  <span class="mt-2 block">
+                    <PlaceholderTag detail="реальный отзыв" />
+                  </span>
+                )}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="bg-cr-ink text-cr-yellow">
+      <div class="mx-auto max-w-wide px-4 pt-24 pb-10 sm:px-8 lg:pt-32">
+        <h2 class="font-cr-display text-[clamp(2rem,10.5vw,6rem)] leading-[0.88] font-black uppercase">
+          <span class="block">Напишите</span>
+          <span class="block pl-[10%] text-cr-white">мне</span>
+        </h2>
+        <p class="mt-8 max-w-[44ch] text-lg text-cr-white">
+          Что снимаем, где и когда? Отвечу и предложу план.
+        </p>
+        <ul class="mt-12 grid gap-4 sm:grid-cols-3" data-contacts>
+          {contacts.map((c) => (
+            <li class="rounded-2xl border-2 border-cr-yellow p-5">
+              <p class="font-cr-display text-xl font-bold">{c.label}</p>
+              <p class="mt-2 text-sm text-cr-white">
+                {c.href ? (
+                  <a href={c.href}>{c.value}</a>
+                ) : (
+                  <PlaceholderTag detail="контакт появится" />
+                )}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <footer class="mt-20 flex flex-wrap items-center justify-between gap-4 border-t border-cr-yellow/30 pt-6 text-sm text-cr-white">
+          <a
+            href={withBase('/design/')}
+            class="inline-flex min-h-11 items-center gap-2 hover:text-cr-yellow"
+            data-testid="back-to-design"
+          >
+            <Icon name="back" class="size-4" /> Все концепции
+          </a>
+          <p>Концепция C. Работы, отзывы и контакты — заглушки.</p>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <dialog
+    id="cr-reel"
+    data-dialog
+    aria-label="Шоурил"
+    class="cr-dialog fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-cr-blue p-0 text-cr-white backdrop:bg-transparent"
+  >
+    <div class="flex h-full flex-col">
+      <div class="flex items-center justify-between px-4 pt-4 sm:px-8 sm:pt-6">
+        <p class="font-cr-display text-lg font-black uppercase">Шоурил</p>
+        <button
+          type="button"
+          class="grid size-11 place-items-center rounded-full bg-cr-white text-cr-ink"
+          data-dialog-close
+          aria-label="Закрыть шоурил"
+        >
+          <Icon name="close" />
+        </button>
+      </div>
+      <div class="flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-10">
+        <FootageFrame
+          tone={{ from: '#173a5c', to: '#f0b25a' }}
+          ratio="16 / 9"
+          class="w-full max-w-5xl"
+          description="Видео шоурила"
+          placeholderDetail="видео шоурила"
+          tagClass={tag}
+        />
+        <p class="max-w-[46ch] text-center">
+          Здесь будет плеер со звуком, когда Анна пришлёт шоурил.
+        </p>
+      </div>
+    </div>
+  </dialog>
+</div>
+
+<script>
+  import { initDialogs } from '../../../lib/ui/dialog';
+  import { initFilters } from '../../../lib/ui/filter';
+  import { initMenus } from '../../../lib/ui/menu';
+
+  initMenus();
+  initDialogs();
+  initFilters();
+
+  // Montage: pull one frame forward at a time.
+  const toggles = [...document.querySelectorAll<HTMLButtonElement>('[data-card-toggle]')];
+  for (const toggle of toggles) {
+    toggle.addEventListener('click', () => {
+      const pressed = toggle.getAttribute('aria-pressed') === 'true';
+      for (const other of toggles) {
+        other.setAttribute('aria-pressed', 'false');
+        other.closest('[data-card]')?.removeAttribute('data-front');
+      }
+      if (!pressed) {
+        toggle.setAttribute('aria-pressed', 'true');
+        toggle.closest('[data-card]')?.setAttribute('data-front', '');
+      }
+    });
+  }
+</script>
+
+<style is:global>
+  html:has(.cr) {
+    scrollbar-color: var(--color-cr-ink) var(--color-cr-yellow);
+  }
+  html[data-menu-open] {
+    overflow: hidden;
+  }
+  .cr :focus-visible {
+    outline-color: var(--color-cr-blue);
+    outline-width: 3px;
+  }
+  .cr [class*='bg-cr-blue'] :focus-visible,
+  .cr [class*='bg-cr-ink'] :focus-visible,
+  .cr-dialog :focus-visible {
+    outline-color: var(--color-cr-yellow);
+  }
+  .cr ::selection {
+    background: var(--color-cr-blue);
+    color: var(--color-cr-white);
+  }
+
+  .cr-btn {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    padding: 0 1.5rem;
+    font-weight: 600;
+    transition: transform 0.2s ease-out;
+  }
+  .cr-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .cr-chip {
+    min-height: 2.75rem;
+    border-radius: 999px;
+    border: 2px solid var(--color-cr-ink);
+    background: var(--color-cr-white);
+    padding: 0 1.1rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .cr-chip[aria-pressed='true'] {
+    background: var(--color-cr-blue);
+    border-color: var(--color-cr-blue);
+    color: var(--color-cr-white);
+  }
+
+  .cr-card {
+    transition:
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .cr-card[data-front] {
+    z-index: 10;
+    transform: rotate(0deg) scale(1.04);
+    box-shadow: 0 30px 60px -25px rgb(26 26 26 / 0.55);
+  }
+  .cr-card[data-front] h3 {
+    color: var(--color-cr-blue);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* Iris wipe: the showreel opens out of the button that was pressed. */
+    .cr-dialog[open] {
+      animation: cr-iris 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+    }
+    @keyframes cr-iris {
+      from {
+        clip-path: circle(0 at var(--origin-x, 50%) var(--origin-y, 50%));
+      }
+      to {
+        clip-path: circle(150vmax at var(--origin-x, 50%) var(--origin-y, 50%));
+      }
+    }
+
+    /* Service words slide along their diagonal bands with scroll. */
+    @supports (animation-timeline: view()) {
+      .cr-slide {
+        animation: cr-slide linear both;
+        animation-timeline: view();
+        animation-range: entry 0% exit 100%;
+      }
+      @keyframes cr-slide {
+        from {
+          transform: translateX(6%);
+        }
+        to {
+          transform: translateX(-6%);
+        }
+      }
+    }
+  }
+</style>

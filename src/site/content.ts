@@ -1,0 +1,170 @@
+import type { PortfolioContent } from '../lib/portfolio';
+
+/**
+ * Content for Anna Shelenkova's portfolio.
+ *
+ * Facts from the brief: name, profession and the four services.
+ * Everything else (projects, showreel, testimonials, contacts, bio) is a
+ * clearly flagged placeholder until Anna provides real material.
+ * Do not replace placeholders with invented clients, results or reviews.
+ */
+export const content: PortfolioContent = {
+  person: {
+    name: 'Анна Шеленкова',
+    role: 'Видеограф',
+    placeholderBio: true,
+    bio: 'Здесь будет короткий рассказ Анны о себе: с чего началась съёмка, как она работает и что любит снимать. Текст появится после согласования.',
+  },
+
+  showreel: {
+    title: 'Шоурил',
+    placeholder: true,
+  },
+
+  services: [
+    {
+      id: 'production',
+      title: 'Видеопроизводство',
+      displayTitle: 'Видео­производство',
+      summary: 'Ролик под ключ: идея, сценарий, съёмка и готовый монтаж.',
+      includes: ['Идея и сценарий', 'Съёмка', 'Монтаж и цвет', 'Версии под площадки'],
+    },
+    {
+      id: 'editing',
+      title: 'Монтаж',
+      summary: 'Собираю историю из вашего материала или из своей съёмки.',
+      includes: ['Монтаж', 'Цветокоррекция', 'Звук и музыка', 'Титры'],
+    },
+    {
+      id: 'voice',
+      title: 'Озвучка',
+      summary: 'Закадровый голос для роликов, презентаций и рекламы.',
+      includes: ['Закадровый текст', 'Запись голоса', 'Сведение с видео'],
+    },
+    {
+      id: 'travel',
+      title: 'Съёмка путешествий',
+      displayTitle: 'Съёмка путе­шествий',
+      summary: 'Выезжаю снимать направления, туры и отели для туристических компаний.',
+      includes: ['Выездная съёмка', 'Отели и маршруты', 'Ролики для продаж туров'],
+    },
+  ],
+
+  categories: [
+    { id: 'travel', label: 'Путешествия' },
+    { id: 'brand', label: 'Бренды' },
+    { id: 'editing', label: 'Монтаж' },
+    { id: 'voice', label: 'Озвучка' },
+  ],
+
+  projects: [
+    {
+      id: 'coast',
+      title: 'Ролик о побережье',
+      category: 'travel',
+      place: 'Побережье',
+      roles: ['travel', 'production', 'editing'],
+      tone: { from: '#0f3d4a', to: '#d9b98a' },
+      placeholder: true,
+    },
+    {
+      id: 'hotel',
+      title: 'Имиджевый фильм отеля',
+      category: 'travel',
+      place: 'Отель',
+      roles: ['travel', 'production'],
+      tone: { from: '#2b1d16', to: '#c9874f' },
+      placeholder: true,
+    },
+    {
+      id: 'mountains',
+      title: 'Горный маршрут',
+      category: 'travel',
+      place: 'Горы',
+      roles: ['travel', 'editing', 'voice'],
+      tone: { from: '#1d2633', to: '#a9b8c9' },
+      placeholder: true,
+    },
+    {
+      id: 'brand-film',
+      title: 'Бренд-ролик',
+      category: 'brand',
+      roles: ['production', 'editing'],
+      tone: { from: '#26122a', to: '#d46a6a' },
+      placeholder: true,
+    },
+    {
+      id: 'recut',
+      title: 'Монтаж из материала клиента',
+      category: 'editing',
+      roles: ['editing'],
+      tone: { from: '#141c14', to: '#8fa66b' },
+      placeholder: true,
+    },
+    {
+      id: 'voice-presentation',
+      title: 'Озвучка презентации',
+      category: 'voice',
+      roles: ['voice'],
+      tone: { from: '#1a1a2e', to: '#7a86c2' },
+      placeholder: true,
+    },
+  ],
+
+  travel: {
+    intro:
+      'Для туроператоров, отелей и туристических направлений: показать место так, чтобы туда захотелось поехать.',
+    steps: [
+      { title: 'Бриф', text: 'Обсуждаем направление, аудиторию и где будет жить ролик.' },
+      { title: 'План выезда', text: 'Маршрут, локации, время съёмки и список кадров.' },
+      { title: 'Съёмка на месте', text: 'Снимаю места, людей и детали, ради которых едут.' },
+      {
+        title: 'Монтаж и голос',
+        text: 'Собираю ролик, при необходимости добавляю закадровый текст.',
+      },
+    ],
+    formats: ['Горизонтальный ролик', 'Вертикальные версии', 'Короткие нарезки'],
+  },
+
+  testimonials: [
+    {
+      id: 't1',
+      quote: 'Здесь будет отзыв клиента — только реальный, с разрешения автора.',
+      author: 'Имя клиента',
+      company: 'Компания',
+      placeholder: true,
+    },
+    {
+      id: 't2',
+      quote: 'Место для второго отзыва. Пока отзывов нет, блок остаётся заглушкой.',
+      author: 'Имя клиента',
+      company: 'Компания',
+      placeholder: true,
+    },
+  ],
+
+  contacts: [
+    { id: 'telegram', label: 'Telegram', placeholder: true },
+    { id: 'email', label: 'Почта', placeholder: true },
+    { id: 'phone', label: 'Телефон', placeholder: true },
+  ],
+};
+
+export function serviceTitle(id: string): string {
+  return content.services.find((s) => s.id === id)?.title ?? id;
+}
+
+export function categoryLabel(id: string): string {
+  return content.categories.find((c) => c.id === id)?.label ?? id;
+}
+
+/** Shared section anchors: identical ids in every concept (used by nav and tests). */
+export const SECTIONS = [
+  { id: 'showreel', label: 'Шоурил' },
+  { id: 'work', label: 'Работы' },
+  { id: 'services', label: 'Услуги' },
+  { id: 'travel', label: 'Путешествия' },
+  { id: 'about', label: 'Обо мне' },
+  { id: 'reviews', label: 'Отзывы' },
+  { id: 'contact', label: 'Контакты' },
+] as const;

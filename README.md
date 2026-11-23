@@ -41,7 +41,8 @@ pnpm dev                # http://localhost:4321/design/
 | `pnpm lint` / `lint:fix`       | ESLint                                                         |
 | `pnpm format` / `format:check` | Prettier                                                       |
 | `pnpm test`                    | Unit-тесты (Vitest)                                            |
-| `pnpm test:e2e`                | Playwright: smoke, навигация, адаптивность (11 ширин)          |
+| `pnpm test:e2e`                | Playwright: smoke, навигация, концепции, шрифты, адаптивность  |
+| `pnpm fonts:metrics`           | Первичный расчёт fallback-метрик шрифтов (см. ARCHITECTURE.md) |
 | `pnpm test:smoke`              | Быстрый smoke в Chromium                                       |
 | `pnpm test:visual`             | Визуальная регрессия (opt-in, см. TESTING.md)                  |
 | `pnpm check`                   | typecheck + lint + format + unit + build                       |
@@ -51,14 +52,15 @@ pnpm dev                # http://localhost:4321/design/
 
 ```
 src/
-  site/          # ← ВСЁ проектно-специфичное (тексты, URL, список демо)
-  lib/           # переиспользуемая логика (paths, deploy, integrations)
+  site/          # ← ВСЁ проектно-специфичное (контент, шрифты, URL, список демо)
+  lib/           # переиспользуемая логика (paths, deploy, fonts, portfolio, ui, integrations)
   config/        # feature flags из PUBLIC_* переменных
-  components/    # ui/ — базовые компоненты, demo/ — заготовки демо
+  components/    # ui/ — базовые компоненты, demo/ — три дизайн-концепции
   layouts/       # BaseLayout (meta, robots, canonical, skip-link)
   styles/        # global.css: Tailwind 4 + дизайн-токены (@theme)
   pages/         # маршруты: /design/, /design/{cinematic,editorial,creative}/
-tests/e2e/       # Playwright smoke/навигация/адаптивность
+tests/e2e/       # Playwright: smoke, навигация, концепции, шрифты, адаптивность
+scripts/         # dev-утилиты (расчёт fallback-метрик шрифтов)
 tests/visual/    # визуальная регрессия (opt-in)
 deploy/timeweb/  # nginx-конфигурация для будущего Timeweb Cloud
 .github/         # CI/CD, rulesets, dependabot, шаблон PR

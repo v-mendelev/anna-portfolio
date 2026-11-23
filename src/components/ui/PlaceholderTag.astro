@@ -1,0 +1,20 @@
+---
+/**
+ * Visible marker for content that is not real client material yet.
+ * Every placeholder in a design MUST render one (enforced by E2E tests).
+ */
+import { PLACEHOLDER_LABEL } from '../../lib/portfolio';
+
+export interface Props {
+  /** What will replace the placeholder, e.g. "фото Анны". */
+  detail?: string;
+  class?: string;
+}
+
+const { detail, class: className } = Astro.props;
+---
+
+<span data-placeholder class:list={['inline-flex items-baseline gap-1.5', className]}>
+  <span>{PLACEHOLDER_LABEL}</span>
+  {detail && <span class="opacity-75">{detail}</span>}
+</span>

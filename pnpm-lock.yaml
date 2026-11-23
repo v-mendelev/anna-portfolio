@@ -175,21 +175,15 @@ importers:
 
   .:
     dependencies:
-      '@fontsource-variable/commissioner':
+      '@fontsource-variable/alumni-sans':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource-variable/cormorant':
+      '@fontsource-variable/noto-sans-display':
         specifier: 5.3.0
         version: 5.3.0
-      '@fontsource-variable/golos-text':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource-variable/literata':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource-variable/unbounded':
-        specifier: 5.3.0
-        version: 5.3.0
+      '@fontsource-variable/onest':
+        specifier: 5.3.1
+        version: 5.3.1
       '@tailwindcss/vite':
         specifier: ^4.3.5
         version: 4.3.5(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1))
@@ -541,20 +535,14 @@ packages:
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  '@fontsource-variable/commissioner@5.3.0':
-    resolution: {integrity: sha512-0IEvi8SO1slc5Pc9tA4OtA01I8UiCcEq/uh12oNjfHuABU9Lnz61l2V8o2cMPUUo3BAo5MbISVK2I/DSpBRw7Q==}
+  '@fontsource-variable/alumni-sans@5.3.0':
+    resolution: {integrity: sha512-M+n1UltNA62XbNgYwEHyw54DlqXjw1NAZeLby6kP7alYIURmDQuvjiHHILdJsuYtVph+JezS6U2ANWM1meox6g==}
 
-  '@fontsource-variable/cormorant@5.3.0':
-    resolution: {integrity: sha512-S3/jFZ2+Erx8ML5+lo71rYKqVpJF13CZ3yWX7xfjQk1wFcPhT9Gp+l2tnNSLOx5Mzjn3mQmVPutpvx91O2VqpQ==}
+  '@fontsource-variable/noto-sans-display@5.3.0':
+    resolution: {integrity: sha512-vtQ+HBQHqdaXpFL0tW6vvQUNNOVddgllnnlwS0NsPLsuXkw62xxICvgCcZ97nFKcmzbDGeXl7B57c53LrFFrQQ==}
 
-  '@fontsource-variable/golos-text@5.3.0':
-    resolution: {integrity: sha512-D+Evz5yqXYh6tsalc537FS+cPDWn2FTdO8j/K1ZZuFAvA7ib6WnusTiihciq7mMnm6GBo6XTlh0JXPrhBsam2g==}
-
-  '@fontsource-variable/literata@5.3.0':
-    resolution: {integrity: sha512-1Jw7xvOcoGyB83lxB2nG4bfNbqtX2/TTbdh9sHAOmU064SvmSdulDtA5RBu5JYWf64fdaKX7xU+z3GO1T2bCHA==}
-
-  '@fontsource-variable/unbounded@5.3.0':
-    resolution: {integrity: sha512-ea565Ncn4r7gPdBEHcmaF31V11hDfkL7b/JCklLobQbMfbu2ZZQrVWNgdeEFWFLqNh36yhieZWOgxdAnMTzrLg==}
+  '@fontsource-variable/onest@5.3.1':
+    resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -3011,15 +2999,11 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
-  '@fontsource-variable/commissioner@5.3.0': {}
+  '@fontsource-variable/alumni-sans@5.3.0': {}
 
-  '@fontsource-variable/cormorant@5.3.0': {}
+  '@fontsource-variable/noto-sans-display@5.3.0': {}
 
-  '@fontsource-variable/golos-text@5.3.0': {}
-
-  '@fontsource-variable/literata@5.3.0': {}
-
-  '@fontsource-variable/unbounded@5.3.0': {}
+  '@fontsource-variable/onest@5.3.1': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

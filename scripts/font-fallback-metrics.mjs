@@ -25,30 +25,19 @@ const SAMPLE_UPPER = SAMPLE_LOWER.toUpperCase();
 
 const FONTS = [
   {
-    name: 'Cormorant Variable',
-    file: 'cormorant/files/cormorant-cyrillic-wght-italic.woff2',
-    fallback: 'serif',
-  },
-  {
-    name: 'Commissioner Variable',
-    file: 'commissioner/files/commissioner-cyrillic-wght-normal.woff2',
+    name: 'Onest Variable',
+    file: 'onest/files/onest-cyrillic-wght-normal.woff2',
     fallback: 'sans',
   },
   {
-    name: 'Literata Variable',
-    file: 'literata/files/literata-cyrillic-wght-normal.woff2',
-    fallback: 'serif',
-  },
-  {
-    name: 'Golos Text Variable',
-    file: 'golos-text/files/golos-text-cyrillic-wght-normal.woff2',
+    name: 'Alumni Sans Variable',
+    file: 'alumni-sans/files/alumni-sans-cyrillic-wght-normal.woff2',
     fallback: 'sans',
   },
   {
-    name: 'Unbounded Variable',
-    file: 'unbounded/files/unbounded-cyrillic-wght-normal.woff2',
+    name: 'Noto Sans Display Variable',
+    file: 'noto-sans-display/files/noto-sans-display-cyrillic-wdth-normal.woff2',
     fallback: 'sans',
-    upper: true,
   },
 ];
 

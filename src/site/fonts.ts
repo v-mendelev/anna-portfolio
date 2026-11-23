@@ -1,171 +1,158 @@
 /**
  * Which fonts each page loads. Project-specific; generic logic is in lib/fonts.ts.
  *
- * Payload decisions:
- *  - only the styles a page uses (Cinematic: Cormorant italic only; Editorial:
- *    Literata roman with the weight axis, not the 2x heavier optical-size axis);
- *  - only Cyrillic + basic Latin subsets;
- *  - one preload per page: the Cyrillic file of the face that sets the h1.
+ * Families (all OFL-1.1, self-hosted WOFF2, Cyrillic + basic Latin only;
+ * ё, й, ъ verified in every Cyrillic file):
+ *  - Onest (wght 100–900): KADR display and text, SKLEYKA text;
+ *  - Alumni Sans (wght 100–900): SKLEYKA condensed display;
+ *  - Noto Sans Display (wght 100–900, wdth 62.5–100): RAPID, the only family on
+ *    that page; width is set with font-stretch (62.5%–100%).
+ * One preload per page: the Cyrillic file of the face that sets the h1.
  * Fallback metrics: see the note above `fallbacks`.
  */
-import commissionerCyr from '@fontsource-variable/commissioner/files/commissioner-cyrillic-wght-normal.woff2?url';
-import commissionerLat from '@fontsource-variable/commissioner/files/commissioner-latin-wght-normal.woff2?url';
-import cormorantItCyr from '@fontsource-variable/cormorant/files/cormorant-cyrillic-wght-italic.woff2?url';
-import cormorantItLat from '@fontsource-variable/cormorant/files/cormorant-latin-wght-italic.woff2?url';
-import golosCyr from '@fontsource-variable/golos-text/files/golos-text-cyrillic-wght-normal.woff2?url';
-import golosLat from '@fontsource-variable/golos-text/files/golos-text-latin-wght-normal.woff2?url';
-import literataCyr from '@fontsource-variable/literata/files/literata-cyrillic-wght-normal.woff2?url';
-import literataLat from '@fontsource-variable/literata/files/literata-latin-wght-normal.woff2?url';
-import unboundedCyr from '@fontsource-variable/unbounded/files/unbounded-cyrillic-wght-normal.woff2?url';
-import unboundedLat from '@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2?url';
-import {
-  SANS_FALLBACKS,
-  SERIF_FALLBACKS,
-  type FallbackFace,
-  type FontSet,
-  type WebFontFace,
-} from '../lib/fonts';
+import alumniCyr from '@fontsource-variable/alumni-sans/files/alumni-sans-cyrillic-wght-normal.woff2?url';
+import alumniLat from '@fontsource-variable/alumni-sans/files/alumni-sans-latin-wght-normal.woff2?url';
+import onestCyr from '@fontsource-variable/onest/files/onest-cyrillic-wght-normal.woff2?url';
+import notoDisplayCyr from '@fontsource-variable/noto-sans-display/files/noto-sans-display-cyrillic-wdth-normal.woff2?url';
+import notoDisplayLat from '@fontsource-variable/noto-sans-display/files/noto-sans-display-latin-wdth-normal.woff2?url';
+import onestLat from '@fontsource-variable/onest/files/onest-latin-wght-normal.woff2?url';
+import { SANS_FALLBACKS, type FallbackFace, type FontSet, type WebFontFace } from '../lib/fonts';
 
 const faces = {
-  cormorantItalic: {
-    family: 'Cormorant Variable',
-    style: 'italic',
-    weight: '300 700',
-    files: { cyrillic: cormorantItCyr, latin: cormorantItLat },
-  },
-  commissioner: {
-    family: 'Commissioner Variable',
+  onest: {
+    family: 'Onest Variable',
     style: 'normal',
     weight: '100 900',
-    files: { cyrillic: commissionerCyr, latin: commissionerLat },
+    files: { cyrillic: onestCyr, latin: onestLat },
   },
-  literata: {
-    family: 'Literata Variable',
+  alumni: {
+    family: 'Alumni Sans Variable',
     style: 'normal',
-    weight: '200 900',
-    files: { cyrillic: literataCyr, latin: literataLat },
+    weight: '100 900',
+    files: { cyrillic: alumniCyr, latin: alumniLat },
   },
-  golos: {
-    family: 'Golos Text Variable',
+  notoDisplay: {
+    family: 'Noto Sans Display Variable',
     style: 'normal',
-    weight: '400 900',
-    files: { cyrillic: golosCyr, latin: golosLat },
-  },
-  unbounded: {
-    family: 'Unbounded Variable',
-    style: 'normal',
-    weight: '200 900',
-    files: { cyrillic: unboundedCyr, latin: unboundedLat },
+    weight: '100 900',
+    stretch: '62.5% 100%',
+    files: { cyrillic: notoDisplayCyr, latin: notoDisplayLat },
   },
 } satisfies Record<string, WebFontFace>;
 
+const SANS_BOLD = [
+  'Arial Bold',
+  'Arial-BoldMT',
+  'Liberation Sans Bold',
+  'Arimo Bold',
+  'Roboto Bold',
+];
+
 /*
- * size-adjust was calibrated in the browser at the weights each family is
- * actually set in (width of Russian sample text, web font vs. fallback);
- * ascent/descent come from the web font's hhea metrics divided by size-adjust
- * (see scripts/font-fallback-metrics.mjs for the static first pass).
- * Families set in very different weights get one fallback per weight range.
+ * size-adjust is calibrated in the browser at the weights (and widths) each
+ * family is actually set in: width of Russian sample text, web font vs.
+ * fallback. ascent/descent are the web font's hhea metrics divided by
+ * size-adjust. Families set in very different weights or widths get one
+ * fallback per range; a fallback cannot condense, so condensed ranges use a
+ * smaller size-adjust (line boxes keep their height thanks to explicit
+ * line-heights, and lines keep their breaks).
  */
 const fallbacks = {
-  cormorant: [
+  onest: [
     {
-      // Only Cormorant italic is loaded, so its fallback is a true italic.
-      for: 'Cormorant Variable',
-      local: [
-        'Times New Roman Italic',
-        'TimesNewRomanPS-ItalicMT',
-        'Liberation Serif Italic',
-        'Tinos Italic',
-        'Noto Serif Italic',
-      ],
-      style: 'italic',
-      sizeAdjust: '87.9%',
-      ascentOverride: '105.12%',
-      descentOverride: '32.66%',
-      lineGapOverride: '0%',
-    },
-  ],
-  commissioner: [
-    {
-      for: 'Commissioner Variable',
+      for: 'Onest Variable',
       local: SANS_FALLBACKS,
-      sizeAdjust: '100.16%',
-      ascentOverride: '101.54%',
-      descentOverride: '20.56%',
+      weight: '100 549',
+      sizeAdjust: '104.54%',
+      ascentOverride: '92.79%',
+      descentOverride: '29.18%',
+      lineGapOverride: '0%',
+    },
+    {
+      // Semibold/bold text: Arial Bold is closer to Onest 600–700 than Arial.
+      for: 'Onest Variable',
+      local: SANS_BOLD,
+      weight: '550 749',
+      sizeAdjust: '97.5%',
+      ascentOverride: '99.49%',
+      descentOverride: '31.28%',
+      lineGapOverride: '0%',
+    },
+    {
+      for: 'Onest Variable',
+      local: SANS_BOLD,
+      weight: '750 1000',
+      sizeAdjust: '101.06%',
+      ascentOverride: '95.98%',
+      descentOverride: '30.18%',
       lineGapOverride: '0%',
     },
   ],
-  literata: [
+  alumni: [
     {
-      for: 'Literata Variable',
-      local: SERIF_FALLBACKS,
-      weight: '100 349',
-      sizeAdjust: '114.69%',
-      ascentOverride: '102.62%',
-      descentOverride: '26.86%',
-      lineGapOverride: '0%',
-    },
-    {
-      for: 'Literata Variable',
-      local: SERIF_FALLBACKS,
-      weight: '350 1000',
-      sizeAdjust: '118.41%',
-      ascentOverride: '99.4%',
-      descentOverride: '26.01%',
+      for: 'Alumni Sans Variable',
+      local: SANS_BOLD,
+      sizeAdjust: '58.2%',
+      ascentOverride: '154.64%',
+      descentOverride: '51.55%',
       lineGapOverride: '0%',
     },
   ],
-  golos: [
+  notoDisplay: [
     {
-      for: 'Golos Text Variable',
+      for: 'Noto Sans Display Variable',
       local: SANS_FALLBACKS,
-      sizeAdjust: '106.5%',
-      ascentOverride: '92.02%',
-      descentOverride: '20.66%',
-      lineGapOverride: '0%',
-    },
-  ],
-  unbounded: [
-    {
-      for: 'Unbounded Variable',
-      local: SANS_FALLBACKS,
-      weight: '100 799',
-      sizeAdjust: '128.03%',
-      ascentOverride: '77.72%',
-      descentOverride: '19.14%',
+      weight: '100 649',
+      sizeAdjust: '102.45%',
+      ascentOverride: '104.34%',
+      descentOverride: '28.6%',
       lineGapOverride: '0%',
     },
     {
-      for: 'Unbounded Variable',
-      local: ['Arial Bold', 'Arial-BoldMT', 'Liberation Sans Bold', 'Arimo Bold', 'Roboto Bold'],
-      weight: '800 1000',
-      sizeAdjust: '116.71%',
-      ascentOverride: '85.26%',
-      descentOverride: '21%',
+      for: 'Noto Sans Display Variable',
+      local: SANS_BOLD,
+      weight: '650 1000',
+      sizeAdjust: '100.45%',
+      ascentOverride: '106.42%',
+      descentOverride: '29.17%',
+      lineGapOverride: '0%',
+    },
+    {
+      // Text set condensed (font-stretch 62.5–75%, font-family var(--font-rp-condensed)).
+      for: 'Noto Sans Display Variable',
+      variant: 'Condensed',
+      local: SANS_BOLD,
+      sizeAdjust: '79.5%',
+      ascentOverride: '134.47%',
+      descentOverride: '36.86%',
       lineGapOverride: '0%',
     },
   ],
 } satisfies Record<string, FallbackFace[]>;
+
 export const fontSets = {
+  /** KADR — /design/cinematic/ */
   cinematic: {
-    faces: [faces.cormorantItalic, faces.commissioner],
-    fallbacks: [...fallbacks.cormorant, ...fallbacks.commissioner],
-    preload: [cormorantItCyr],
+    faces: [faces.onest],
+    fallbacks: fallbacks.onest,
+    preload: [onestCyr],
   },
+  /** SKLEYKA — /design/editorial/ */
   editorial: {
-    faces: [faces.literata, faces.golos],
-    fallbacks: [...fallbacks.literata, ...fallbacks.golos],
-    preload: [literataCyr],
+    faces: [faces.alumni, faces.onest],
+    fallbacks: [...fallbacks.alumni, ...fallbacks.onest],
+    preload: [alumniCyr],
   },
+  /** RAPID — /design/creative/ */
   creative: {
-    faces: [faces.unbounded, faces.golos],
-    fallbacks: [...fallbacks.unbounded, ...fallbacks.golos],
-    preload: [unboundedCyr],
+    faces: [faces.notoDisplay],
+    fallbacks: fallbacks.notoDisplay,
+    preload: [notoDisplayCyr],
   },
-  /** Chooser previews each concept's display face on a Latin word only. */
+  /** Chooser previews each concept's display face on its Cyrillic name only. */
   chooser: {
-    faces: [faces.cormorantItalic, faces.literata, faces.unbounded],
-    fallbacks: [...fallbacks.cormorant, ...fallbacks.literata, ...fallbacks.unbounded],
+    faces: [faces.onest, faces.alumni, faces.notoDisplay],
+    fallbacks: [...fallbacks.onest, ...fallbacks.alumni, ...fallbacks.notoDisplay],
     preload: [],
   },
 } satisfies Record<string, FontSet>;

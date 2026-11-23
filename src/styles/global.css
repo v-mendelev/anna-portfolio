@@ -17,7 +17,7 @@
   --color-ink: #1c1917;
   --color-ink-muted: #57534e;
   --color-line: #e7e5e4;
-  --color-accent: #b45309;
+  --color-accent: #1a2bff;
   --color-accent-ink: #ffffff;
 
   --font-sans:
@@ -26,36 +26,33 @@
   --container-page: 72rem;
   --container-wide: 90rem;
 
-  /* A. Cinematic: the interface is a dark screening room; colour lives in the footage */
-  --color-cine-void: #000000;
-  --color-cine-house: #16140f;
-  --color-cine-line: #2e2a24;
-  --color-cine-screen: #ece8e1;
-  --color-cine-dim: #a29b90;
-  --font-cine-display: 'Cormorant Variable', 'Cormorant Variable Fallback', serif;
-  --font-cine-text: 'Commissioner Variable', 'Commissioner Variable Fallback', sans-serif;
+  /*
+   * Portfolio identity, shared by the three concepts: white paper and ONE
+   * saturated accent, electric blue. Black and deep blue are neutral type.
+   * Contrast on white: volt 7.41:1, volt-deep 12.39:1, ink 21:1 (all AA for
+   * any text size); white on volt-deep 12.39:1. volt-tint is a fill only
+   * (1.21:1 on white): never text, never a border that must be seen.
+   * Never set volt on dark footage (2.83:1 on black): use a white plate.
+   */
+  --color-paper: #ffffff;
+  --color-volt: #1a2bff;
+  --color-volt-deep: #0b16a8;
+  --color-volt-tint: #e6e8ff;
+  --color-pitch: #000000;
 
-  /* B. Editorial: a contemporary travel atlas on cool uncoated paper */
-  --color-ed-paper: #f5f6f3;
-  --color-ed-tint: #e8ebe6;
-  --color-ed-line: #cfd4ce;
-  --color-ed-ink: #1b1d1c;
-  --color-ed-muted: #565c59;
-  --color-ed-water: #2a4f7a;
-  --font-ed-serif: 'Literata Variable', 'Literata Variable Fallback', serif;
-  --font-ed-sans: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
+  /* A. KADR (/design/cinematic/): viewfinder grid, Onest only. */
+  --font-kadr: 'Onest Variable', 'Onest Variable Fallback', sans-serif;
 
-  /* C. Creative: montage poster printed on warm ivory.
-     Contrast-safe text pairs: plum on ivory/paper (12.9+), plum on sage (6.4),
-     plum on coral (4.9) and coral on plum. Never coral/sage text on ivory,
-     never ivory text on coral/sage. */
-  --color-cr-ivory: #f6f0e8;
-  --color-cr-paper: #fffaf4;
-  --color-cr-coral: #ec7056;
-  --color-cr-plum: #302536;
-  --color-cr-sage: #a5af99;
-  --font-cr-display: 'Unbounded Variable', 'Unbounded Variable Fallback', sans-serif;
-  --font-cr-text: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
+  /* B. SKLEYKA (/design/editorial/): condensed display + Onest text. */
+  --font-sk-display: 'Alumni Sans Variable', 'Alumni Sans Variable Fallback', sans-serif;
+  --font-sk-text: 'Onest Variable', 'Onest Variable Fallback', sans-serif;
+
+  /* C. RAPID (/design/creative/): one variable family, weight + width axes
+     (Noto Sans Display, wdth 62.5–100 via font-stretch). Condensed text uses
+     --font-rp-condensed so its fallback matches the narrower width. */
+  --font-rp: 'Noto Sans Display Variable', 'Noto Sans Display Variable Fallback', sans-serif;
+  --font-rp-condensed:
+    'Noto Sans Display Variable', 'Noto Sans Display Variable Condensed Fallback', sans-serif;
 }
 
 @layer base {

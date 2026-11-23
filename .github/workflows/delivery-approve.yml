@@ -1,0 +1,54 @@
+name: Delivery · approve
+
+# Publish approval: an authorized approver (default: the repository owner)
+# comments exactly `/publish-approve <full head SHA>` on a feature/* → dev PR.
+# The App records the approval as a commit status on that SHA and enables
+# GitHub native auto-merge bound to it. Required checks still gate the merge.
+#
+# Security:
+# - issue_comment always runs the DEFAULT BRANCH's workflow and code; the PR's
+#   code is never checked out or executed here.
+# - The App key lives in the `delivery` environment (deployment branches: main,
+#   dev), so workflows on feature branches can never read it.
+# - Inert until the repository variable DELIVERY_REPOSITORY equals this repo.
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: delivery-approve-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    name: Approve publish
+    if: >-
+      vars.DELIVERY_REPOSITORY == github.repository &&
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/publish-approve ') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: delivery
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the default branch (trusted code only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+
+      # No dependency install: the script uses only Node built-ins.
+      - name: Validate approval and enable SHA-bound auto-merge
+        run: node scripts/delivery/run.ts approve
+        env:
+          DELIVERY_REPOSITORY: ${{ vars.DELIVERY_REPOSITORY }}
+          DELIVERY_APPROVERS: ${{ vars.DELIVERY_APPROVERS }}
+          DELIVERY_APP_ID: ${{ vars.DELIVERY_APP_ID }}
+          DELIVERY_APP_PRIVATE_KEY: ${{ secrets.DELIVERY_APP_PRIVATE_KEY }}

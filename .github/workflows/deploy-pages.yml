@@ -40,10 +40,20 @@ jobs:
     permissions:
       contents: read
       pages: read
+    outputs:
+      sha: ${{ steps.info.outputs.sha }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.sha }}
+
+      # Lets the live smoke test prove which commit is actually being served.
+      - name: Record the deployed commit (build-info.json)
+        id: info
+        run: |
+          sha="$(git rev-parse HEAD)"
+          printf '{"sha":"%s","run":"%s"}\n' "$sha" "$GITHUB_RUN_ID" > public/build-info.json
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Read Pages configuration
         id: pages
@@ -82,22 +92,40 @@ jobs:
 
   verify:
     name: Verify live site
-    needs: deploy
+    needs: [build, deploy]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      statuses: write
     steps:
-      - name: Check published pages respond
+      # The workflow's own commit (not the rollback ref) provides the smoke script.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+
+      # Waits until build-info.json reports the deployed SHA, then checks HTTP 200
+      # on every route from tests/e2e/routes.ts and every CSS/JS/font asset.
+      - name: Live smoke (commit SHA, routes, CSS/JS/fonts)
+        id: smoke
+        run: node scripts/delivery/run.ts live-smoke
         env:
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECTED_SHA: ${{ needs.build.outputs.sha }}
+
+      - name: Report the result on the commit (delivery/live)
+        if: ${{ always() && needs.build.outputs.sha != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.build.outputs.sha }}
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+          STATE: ${{ steps.smoke.outcome == 'success' && 'success' || 'failure' }}
         run: |
-          base="${PAGE_URL%/}"
-          [ -n "$base" ] || { echo "page_url is empty"; exit 1; }
-          for path in design/ design/cinematic/ design/editorial/ design/creative/; do
-            for i in 1 2 3 4 5 6; do
-              code=$(curl -s -o /dev/null -w '%{http_code}' "$base/$path")
-              [ "$code" = "200" ] && break
-              sleep 10
-            done
-            echo "$base/$path -> $code"
-            [ "$code" = "200" ] || exit 1
-          done
+          gh api --method POST "repos/$GITHUB_REPOSITORY/statuses/$SHA" \
+            -f state="$STATE" -f context="delivery/live" -f target_url="$PAGE_URL" \
+            -f description="Live smoke on GitHub Pages: $STATE" > /dev/null
+          echo "Live site: $PAGE_URL ($STATE, commit $SHA)"

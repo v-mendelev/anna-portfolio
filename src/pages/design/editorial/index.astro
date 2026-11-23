@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import EditorialPage from '../../../components/demo/editorial/EditorialPage.astro';
+import SkleykaPage from '../../../components/demo/skleyka/SkleykaPage.astro';
 import FontFaces from '../../../components/ui/FontFaces.astro';
 import { getDemo } from '../../../site/get-demo';
 import { fontSets } from '../../../site/fonts';
@@ -10,10 +10,10 @@ const demo = getDemo('editorial');
 
 <BaseLayout
   title={`Демо: ${demo.title}`}
-  bodyClass="bg-ed-paper text-ed-ink"
-  themeColor="#f5f6f3"
-  skipLinkClass="bg-ed-water text-ed-paper focus-visible:outline-ed-water"
+  bodyClass="bg-paper text-pitch"
+  themeColor="#ffffff"
+  skipLinkClass="bg-pitch text-paper focus-visible:outline-volt"
 >
   <FontFaces slot="head" set={fontSets.editorial} />
-  <EditorialPage />
+  <SkleykaPage />
 </BaseLayout>

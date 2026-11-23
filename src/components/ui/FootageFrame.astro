@@ -34,6 +34,12 @@ export interface Props {
   eager?: boolean;
   /** Placeholder horizon: "hard" reads as a scene, "soft" sits quietly behind text. */
   horizon?: 'hard' | 'soft';
+  /**
+   * Placeholder painting. "scene" paints a sky/horizon stand-in; "none" paints
+   * nothing, so a concept can draw its own slate (via classes and the slot)
+   * while the frame keeps its ratio, accessible description and label.
+   */
+  paint?: 'scene' | 'none';
 }
 
 const {
@@ -49,6 +55,7 @@ const {
   eager = false,
   tag = true,
   horizon = 'hard',
+  paint = 'scene',
 } = Astro.props;
 
 const style = [
@@ -89,7 +96,11 @@ const style = [
     />
   ) : (
     <div
-      class:list={['footage-paint absolute inset-0', horizon === 'soft' && 'footage-paint--soft']}
+      class:list={[
+        'absolute inset-0',
+        paint === 'scene' && 'footage-paint',
+        paint === 'scene' && horizon === 'soft' && 'footage-paint--soft',
+      ]}
       role="img"
       aria-label={description}
     />

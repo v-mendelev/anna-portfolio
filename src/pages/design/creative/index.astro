@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import CreativePage from '../../../components/demo/creative/CreativePage.astro';
+import RapidPage from '../../../components/demo/rapid/RapidPage.astro';
 import FontFaces from '../../../components/ui/FontFaces.astro';
 import { getDemo } from '../../../site/get-demo';
 import { fontSets } from '../../../site/fonts';
@@ -10,10 +10,10 @@ const demo = getDemo('creative');
 
 <BaseLayout
   title={`Демо: ${demo.title}`}
-  bodyClass="bg-cr-ivory text-cr-plum"
-  themeColor="#f6f0e8"
-  skipLinkClass="bg-cr-plum text-cr-ivory focus-visible:outline-cr-plum"
+  bodyClass="bg-paper text-volt"
+  themeColor="#ffffff"
+  skipLinkClass="bg-volt text-paper focus-visible:outline-volt"
 >
   <FontFaces slot="head" set={fontSets.creative} />
-  <CreativePage />
+  <RapidPage />
 </BaseLayout>

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import CinematicPage from '../../../components/demo/cinematic/CinematicPage.astro';
+import KadrPage from '../../../components/demo/kadr/KadrPage.astro';
 import FontFaces from '../../../components/ui/FontFaces.astro';
 import { getDemo } from '../../../site/get-demo';
 import { fontSets } from '../../../site/fonts';
@@ -10,10 +10,10 @@ const demo = getDemo('cinematic');
 
 <BaseLayout
   title={`Демо: ${demo.title}`}
-  bodyClass="bg-cine-void text-cine-screen"
-  themeColor="#000000"
-  skipLinkClass="bg-cine-screen text-cine-void focus-visible:outline-cine-screen"
+  bodyClass="bg-paper text-volt"
+  themeColor="#ffffff"
+  skipLinkClass="bg-volt text-paper focus-visible:outline-volt"
 >
   <FontFaces slot="head" set={fontSets.cinematic} />
-  <CinematicPage />
+  <KadrPage />
 </BaseLayout>

@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import CutLine from '../../components/demo/skleyka/CutLine.astro';
 import Container from '../../components/ui/Container.astro';
 import FontFaces from '../../components/ui/FontFaces.astro';
 import { fontSets } from '../../site/fonts';
@@ -7,23 +8,11 @@ import { withBase } from '../../lib/paths';
 import { demos, type DemoSlug } from '../../site/demos';
 import { siteConfig } from '../../site/site.config';
 
-/** Each card previews its concept in that concept's own type and colour. */
-const swatch: Record<DemoSlug, { panel: string; word: string; label: string }> = {
-  cinematic: {
-    panel: 'bg-cine-void text-cine-screen',
-    word: 'font-cine-display text-5xl font-light italic',
-    label: 'Тёмный зал, видео на первом плане',
-  },
-  editorial: {
-    panel: 'bg-ed-paper text-ed-ink',
-    word: 'font-ed-serif text-5xl font-light tracking-[-0.03em]',
-    label: 'Светлый журнальный разворот',
-  },
-  creative: {
-    panel: 'bg-cr-coral text-cr-plum',
-    word: 'font-cr-display text-3xl font-black uppercase -rotate-6',
-    label: 'Плакат, диагонали и движение',
-  },
+/** Each card previews its concept in that concept's own type and composition. */
+const preview: Record<DemoSlug, { panel: string; label: string }> = {
+  cinematic: { panel: 'bg-paper text-volt', label: 'Сетка видоискателя' },
+  editorial: { panel: 'bg-paper text-pitch', label: 'Разрезанные заголовки' },
+  creative: { panel: 'bg-volt text-paper', label: 'Типографика в движении' },
 };
 ---
 
@@ -35,8 +24,8 @@ const swatch: Record<DemoSlug, { panel: string; word: string; label: string }> =
       Выберите демоверсию дизайна
     </h1>
     <p class="mt-4 max-w-prose text-base text-ink-muted sm:text-lg">
-      Три направления одного сайта-портфолио с одинаковым содержанием. Работы, отзывы и контакты
-      пока заглушки.
+      Три направления одного сайта-портфолио: белый фон, электрический синий, тяжёлый гротеск.
+      Содержание одинаковое. Работы, отзывы и контакты пока заглушки.
     </p>
     <ul class="mt-10 grid gap-6 md:grid-cols-3" data-testid="demo-list">
       {demos.map((demo) => (
@@ -44,13 +33,40 @@ const swatch: Record<DemoSlug, { panel: string; word: string; label: string }> =
           <a
             href={withBase(`/design/${demo.slug}/`)}
             data-testid={`demo-link-${demo.slug}`}
-            class="group block h-full overflow-hidden rounded-xl border border-line bg-surface-raised transition-colors hover:border-ink"
+            class="group block h-full overflow-hidden rounded-xl border border-line bg-surface-raised transition-colors hover:border-volt"
           >
-            <span class:list={['grid aspect-[4/3] place-items-center', swatch[demo.slug].panel]}>
-              <span class={swatch[demo.slug].word}>{demo.title}</span>
+            <span
+              class:list={[
+                'chooser-panel relative grid aspect-[4/3] place-items-center overflow-hidden border-b border-line',
+                preview[demo.slug].panel,
+              ]}
+            >
+              {demo.slug === 'cinematic' && (
+                <>
+                  <span class="chooser-vf" aria-hidden="true" />
+                  <span
+                    class="font-kadr text-6xl font-black tracking-[-0.045em] uppercase"
+                    set:text={demo.title}
+                  />
+                </>
+              )}
+              {demo.slug === 'editorial' && (
+                <CutLine
+                  text={demo.title}
+                  shift="0.08em"
+                  class="chooser-cut font-sk-display text-7xl leading-[0.8] font-extrabold uppercase"
+                />
+              )}
+              {demo.slug === 'creative' && (
+                <span
+                  class="text-8xl leading-none font-[900] uppercase"
+                  style="font-family: var(--font-rp-condensed); font-stretch: 62.5%"
+                  set:text={demo.title}
+                />
+              )}
             </span>
             <span class="block p-5">
-              <span class="block text-lg font-semibold">{swatch[demo.slug].label}</span>
+              <span class="block text-lg font-semibold">{preview[demo.slug].label}</span>
               <span class="mt-2 block text-sm leading-relaxed text-ink-muted">{demo.summary}</span>
             </span>
           </a>
@@ -59,3 +75,36 @@ const swatch: Record<DemoSlug, { panel: string; word: string; label: string }> =
     </ul>
   </Container>
 </BaseLayout>
+
+<style is:global>
+  .chooser-vf {
+    position: absolute;
+    inset: 1.25rem;
+    background:
+      linear-gradient(currentColor, currentColor) left top / 1.25rem 3px no-repeat,
+      linear-gradient(currentColor, currentColor) left top / 3px 1.25rem no-repeat,
+      linear-gradient(currentColor, currentColor) right top / 1.25rem 3px no-repeat,
+      linear-gradient(currentColor, currentColor) right top / 3px 1.25rem no-repeat,
+      linear-gradient(currentColor, currentColor) left bottom / 1.25rem 3px no-repeat,
+      linear-gradient(currentColor, currentColor) left bottom / 3px 1.25rem no-repeat,
+      linear-gradient(currentColor, currentColor) right bottom / 1.25rem 3px no-repeat,
+      linear-gradient(currentColor, currentColor) right bottom / 3px 1.25rem no-repeat;
+  }
+  /* The chooser shows the cut already split (no scroll animation here). */
+  .chooser-cut.sk-cut {
+    position: relative;
+    display: block;
+    white-space: nowrap;
+  }
+  .chooser-cut .sk-cut-a {
+    display: block;
+    clip-path: inset(0 0 50% 0);
+  }
+  .chooser-cut .sk-cut-b {
+    position: absolute;
+    inset: 0;
+    color: var(--color-volt);
+    clip-path: inset(50% 0 0 0);
+    transform: translateX(var(--cut-shift));
+  }
+</style>

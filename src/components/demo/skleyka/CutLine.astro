@@ -1,0 +1,27 @@
+---
+/**
+ * One line of a "cut" headline (SKLEYKA's signature): the word is split along a
+ * horizontal splice; the lower half is reprinted in blue and offset sideways,
+ * like a mis-registered edit. Scrolling lands the cut (see .sk-cut in
+ * SkleykaPage.astro).
+ *
+ * Accessibility: the visible text exists once (.sk-cut-a). The lower-half copy
+ * is aria-hidden, so headings are announced once and copy/paste gives one word.
+ * Readability: the offset is small (fractions of an em) and the top half is
+ * never moved, so the word reads in every animation state.
+ */
+interface Props {
+  text: string;
+  /** Sideways offset of the lower half, e.g. "0.16em" or "-0.12em". */
+  shift?: string;
+  class?: string;
+}
+const { text, shift = '0.14em', class: className } = Astro.props;
+---
+
+{/* Children written without whitespace between them: a stray space would pull
+    the face's Latin file in for nothing (unicode-range includes U+0020). */}
+<span class:list={['sk-cut', className]} style={`--cut-shift: ${shift}`}>
+  <span class="sk-cut-a" set:text={text} />
+  <span class="sk-cut-b" aria-hidden="true" set:text={text} />
+</span>

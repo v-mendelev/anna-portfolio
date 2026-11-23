@@ -45,7 +45,8 @@ export const content: PortfolioContent = {
       id: 'travel',
       title: 'Съёмка путешествий',
       displayTitle: 'Съёмка путе­шествий',
-      summary: 'Выезжаю снимать направления, туры и отели для туристических компаний.',
+      summary:
+        'Новое направление: выездная съёмка мест, маршрутов и отелей для туристических компаний.',
       includes: ['Выездная съёмка', 'Отели и маршруты', 'Ролики для продаж туров'],
     },
   ],
@@ -68,11 +69,10 @@ export const content: PortfolioContent = {
       placeholder: true,
     },
     {
-      id: 'hotel',
-      title: 'Имиджевый фильм отеля',
-      category: 'travel',
-      place: 'Отель',
-      roles: ['travel', 'production'],
+      id: 'event',
+      title: 'Ролик с мероприятия',
+      category: 'brand',
+      roles: ['production', 'editing'],
       tone: { from: '#2b1d16', to: '#c9874f', horizon: 74, sunX: 24, sunY: 40 },
       placeholder: true,
     },
@@ -113,7 +113,7 @@ export const content: PortfolioContent = {
 
   travel: {
     intro:
-      'Для туроператоров, отелей и туристических направлений: показать место так, чтобы туда захотелось поехать.',
+      'Я начинаю снимать видео для туроператоров, отелей и туристических мест. Готовых туристических проектов пока нет — ниже показано, как будет устроена работа.',
     steps: [
       { title: 'Бриф', text: 'Обсуждаем направление, аудиторию и где будет жить ролик.' },
       { title: 'План выезда', text: 'Маршрут, локации, время съёмки и список кадров.' },
@@ -157,6 +157,19 @@ export function serviceTitle(id: string): string {
 export function categoryLabel(id: string): string {
   return content.categories.find((c) => c.id === id)?.label ?? id;
 }
+
+/**
+ * Hero positioning shared by all concepts: Anna is a videographer first
+ * (filming, editing, voice-over); travel production is a new direction, not
+ * her only specialisation and not yet backed by finished tourism projects.
+ */
+export const HERO = {
+  lead: 'Видеограф. Снимаю, монтирую и озвучиваю видео: от съёмки до готового ролика с голосом.',
+  next: 'Новое направление — видео о путешествиях.',
+} as const;
+
+/** Travel section heading: named as a direction in development. */
+export const TRAVEL_HEADING = { main: 'Путешествия', sub: 'новое направление' } as const;
 
 /**
  * Shown above the portfolio in every concept while projects are placeholders:

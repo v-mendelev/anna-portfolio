@@ -20,7 +20,9 @@ import { usedCategories } from '../../../lib/portfolio';
 import {
   DEMO_PROJECT_LABEL,
   DEMO_WORK_NOTE,
+  HERO,
   SECTIONS,
+  TRAVEL_HEADING,
   categoryLabel,
   content,
   serviceTitle,
@@ -122,9 +124,7 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
               Шеленкова
             </span>
           </h1>
-          <p class="mt-10 max-w-[36ch] text-lg leading-relaxed font-medium lg:mt-14">
-            Видеограф. Снимаю, монтирую и озвучиваю. Выезжаю на съёмки для туристических компаний.
-          </p>
+          <p class="mt-10 max-w-[36ch] text-lg leading-relaxed font-medium lg:mt-14">{HERO.lead}</p>
           <div class="mt-8 flex flex-wrap gap-3">
             <button
               type="button"
@@ -178,8 +178,7 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
             Шоурил
           </h2>
           <p class="mt-6 max-w-[36ch] text-lg">
-            Лучшие кадры из разных проектов: путешествия, бренды, монтаж и голос. Включайте со
-            звуком.
+            Лучшие кадры из разных проектов: съёмка, монтаж и голос. Включайте со звуком.
           </p>
           <p class="mt-4 text-sm">
             <PlaceholderTag detail="видео появится позже" />
@@ -231,10 +230,10 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
         >
           Показано работ: {projects.length}
         </p>
-        <p class="mt-1 text-sm">Нажмите на кадр, чтобы узнать, что я делала бы в таком проекте.</p>
+        <p class="mt-1 text-sm">Нажмите на кадр, чтобы узнать, что я делаю в таком проекте.</p>
         <ul class="mt-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8" data-project-list>
           {projects.map((p, i) => (
-            <li data-category={p.category}>
+            <li data-category={p.category} class="max-sm:w-[86%] max-sm:even:ml-auto">
               <article
                 class:list={[
                   'cr-card relative border-2 border-cr-plum bg-cr-paper p-3 pb-4',
@@ -244,7 +243,8 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
               >
                 <FootageFrame
                   tone={p.tone}
-                  ratio="4 / 3"
+                  ratio={null}
+                  class="aspect-[3/2] sm:aspect-[4/3]"
                   description={`Кадр из проекта «${p.title}»`}
                   placeholder={p.placeholder}
                   placeholderDetail={DEMO_PROJECT_LABEL}
@@ -253,7 +253,7 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
                 <h3 class="mt-3 font-cr-display text-base leading-tight font-bold">{p.title}</h3>
                 <p class="mt-1 text-sm">{categoryLabel(p.category)}</p>
                 <p class="cr-card-more mt-2 text-sm" id={`cr-more-${p.id}`}>
-                  Что я делала: {p.roles.map(serviceTitle).join(', ').toLowerCase()}
+                  Что я делаю в таком проекте: {p.roles.map(serviceTitle).join(', ').toLowerCase()}
                 </p>
                 <button
                   type="button"
@@ -303,7 +303,10 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
       <div class="mx-auto max-w-wide px-4 py-24 sm:px-8 lg:py-32">
         <div class="grid gap-8 lg:grid-cols-12">
           <h2 class="font-cr-display text-[clamp(1.75rem,8.6vw,6rem)] leading-[0.9] font-black uppercase lg:col-span-12">
-            Путешествия
+            {TRAVEL_HEADING.main}
+            <span class="mt-2 block text-[clamp(1.1rem,5vw,2.5rem)] tracking-normal normal-case">
+              {TRAVEL_HEADING.sub}
+            </span>
           </h2>
           <p class="max-w-[40ch] text-xl leading-relaxed font-medium lg:col-span-6 lg:col-start-7">
             {travel.intro}
@@ -563,16 +566,20 @@ const reviewCards = ['bg-cr-coral md:-rotate-1', 'bg-cr-sage md:mt-16 md:rotate-
   }
 
   .cr-card {
+    /* Tailwind tilt utilities set the individual `rotate` property, so the
+       pulled-forward state must reset `rotate`/`scale`, not `transform`. */
     transition:
-      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      rotate 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      scale 0.45s cubic-bezier(0.16, 1, 0.3, 1),
       box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .cr-card[data-front] {
     z-index: 10;
-    transform: rotate(0deg) scale(1.04);
+    rotate: 0deg;
+    scale: 1.04;
     border-color: var(--color-cr-coral);
     outline: 4px solid var(--color-cr-coral);
-    box-shadow: 0 30px 50px -24px rgb(48 37 54 / 0.55);
+    box-shadow: 0 30px 50px -24px color-mix(in oklab, var(--color-cr-plum) 55%, transparent);
   }
   .cr-card:not([data-front]) .cr-card-more {
     display: none;

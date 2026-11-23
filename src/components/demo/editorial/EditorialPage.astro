@@ -14,7 +14,9 @@ import { usedCategories } from '../../../lib/portfolio';
 import {
   DEMO_PROJECT_LABEL,
   DEMO_WORK_NOTE,
+  HERO,
   SECTIONS,
+  TRAVEL_HEADING,
   categoryLabel,
   content,
   serviceTitle,
@@ -84,15 +86,12 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
         <span class="block">Анна</span>
         <span class="block pl-[10%]">Шеленкова</span>
       </h1>
-      <div class="col-span-12 mt-8 sm:col-span-8 max-lg:order-3 lg:col-span-4 lg:col-start-2 lg:row-start-2 lg:mt-10">
-        <p class="font-ed-serif text-lg leading-relaxed sm:text-2xl">
-          Видеограф. Снимаю места и людей, монтирую и озвучиваю ролики для туристических компаний и
-          брендов.
-        </p>
-        <p class="mt-5 text-sm text-ed-muted">
-          Видеопроизводство, монтаж, озвучка, съёмка путешествий.
-        </p>
-        <div class="mt-8 flex flex-wrap gap-x-8 gap-y-3">
+      {/* Phone: name, pitch and the contact action first, then the plate, so the
+          primary CTA is on the first screen without competing with the picture. */}
+      <div class="col-span-12 mt-6 sm:col-span-8 max-lg:order-2 lg:col-span-4 lg:col-start-2 lg:row-start-2 lg:mt-10">
+        <p class="font-ed-serif text-lg leading-relaxed sm:text-2xl">{HERO.lead}</p>
+        <p class="mt-4 text-sm text-ed-muted">{HERO.next}</p>
+        <div class="mt-5 flex flex-wrap gap-x-8 gap-y-1 lg:mt-8">
           <a href="#contact" class="ed-cta">
             Обсудить проект
           </a>
@@ -106,20 +105,18 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
           </button>
         </div>
       </div>
-      {/* Phone: the plate sits between name and standfirst and bleeds off the
-          right edge, so the first screen holds the name, a picture and the pitch. */}
-      <figure class="col-span-12 -mr-4 mt-8 max-lg:order-2 sm:col-span-9 sm:col-start-4 sm:mr-0 lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:-mr-8">
+      <figure class="col-span-12 -mr-4 mt-8 max-lg:order-3 sm:col-span-9 sm:col-start-4 sm:mr-0 lg:col-span-5 lg:col-start-8 lg:row-span-2 lg:row-start-1 lg:mt-0 lg:-mr-8">
         <FootageFrame
           tone={{ from: '#24414f', to: '#d8d2bf', horizon: 60, sunX: 70, sunY: 30 }}
           ratio={null}
           class="aspect-[16/10] lg:aspect-[4/5]"
-          description="Кадр из ролика о путешествии"
+          description="Кадр из будущего ролика"
           placeholder={true}
           tag={false}
           eager
         />
         <figcaption class="mt-3 max-w-[46ch] text-sm text-ed-muted">
-          Кадр из будущего ролика о путешествии.
+          Кадр из будущего ролика.
           <PlaceholderTag detail="кадр" class={tagClass} />
         </figcaption>
       </figure>
@@ -130,7 +127,7 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
         <div class="col-span-12 lg:col-span-3">
           <h2 class="font-ed-serif text-4xl font-light tracking-[-0.02em] sm:text-5xl">Шоурил</h2>
           <p class="mt-4 max-w-[34ch] text-ed-muted">
-            Короткая сборка из разных проектов: путешествия, бренды, монтаж и голос.
+            Короткая сборка из разных проектов: съёмка, монтаж и голос.
           </p>
           <button
             type="button"
@@ -228,7 +225,7 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
                     tag={false}
                   />
                   <div class="col-span-12 text-sm sm:col-span-5">
-                    <h3 class="font-ed-serif text-lg">Что я делала</h3>
+                    <h3 class="font-ed-serif text-lg">Что я делаю в таком проекте</h3>
                     <p class="mt-1 text-ed-muted">{p.roles.map(serviceTitle).join(', ')}</p>
                     {p.placeholder && (
                       <p class="mt-4 max-w-[36ch] text-ed-muted">
@@ -269,17 +266,22 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
     </section>
 
     <section id="travel" class="border-t border-ed-line">
-      <div class="mx-auto max-w-wide px-4 py-20 sm:px-8 lg:py-28">
+      {/* Phone: the plate follows the intro, breaking up the run of text. */}
+      <div class="mx-auto flex max-w-wide flex-col px-4 py-20 sm:px-8 md:block lg:py-28">
         <div class="grid grid-cols-12 gap-x-6 gap-y-6">
           <h2 class="col-span-12 font-ed-serif text-4xl font-light tracking-[-0.02em] sm:text-5xl lg:col-span-5">
-            Съёмка путешествий
+            {TRAVEL_HEADING.main}
+            <span class="mt-2 block text-2xl text-ed-muted sm:text-3xl">{TRAVEL_HEADING.sub}</span>
           </h2>
-          <p class="col-span-12 font-ed-serif text-2xl leading-snug font-light sm:text-3xl lg:col-span-6 lg:col-start-7">
+          <p class="col-span-12 font-ed-serif text-xl leading-snug font-light sm:text-3xl lg:col-span-6 lg:col-start-7">
             {travel.intro}
           </p>
         </div>
 
-        <ol class="ed-route relative mt-16 grid gap-10 md:grid-cols-4 md:gap-6" data-route>
+        <ol
+          class="ed-route relative mt-14 grid gap-10 max-md:order-2 md:mt-16 md:grid-cols-4 md:gap-6"
+          data-route
+        >
           {travel.steps.map((step, i) => (
             <li class="relative pl-10 md:pt-12 md:pl-0">
               <span class="ed-stop absolute top-1 left-0 md:top-0" aria-hidden="true" />
@@ -292,16 +294,17 @@ const tagClass = 'mt-2 block text-xs text-ed-muted';
           ))}
         </ol>
 
-        <div class="mt-16 grid grid-cols-12 gap-x-6 gap-y-6">
-          <figure class="col-span-12 lg:col-span-8">
+        <div class="mt-10 grid grid-cols-12 gap-x-6 gap-y-6 max-md:order-1 md:mt-16">
+          <figure class="col-span-12 -mr-4 sm:mr-0 lg:col-span-8">
             <FootageFrame
               tone={{ from: '#1f3b4d', to: '#b9cfd6' }}
-              ratio="21 / 9"
+              ratio={null}
+              class="aspect-video md:aspect-[21/9]"
               description="Кадр с выездной съёмки"
               tag={false}
             />
             <figcaption class="mt-3 text-sm text-ed-muted">
-              Кадр с выезда. <PlaceholderTag detail="кадр" />
+              Кадр с будущей выездной съёмки. <PlaceholderTag detail="кадр" />
             </figcaption>
           </figure>
           <div class="col-span-12 lg:col-span-3 lg:col-start-10">

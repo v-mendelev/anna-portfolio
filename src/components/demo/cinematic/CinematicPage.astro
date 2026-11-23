@@ -14,7 +14,9 @@ import { usedCategories } from '../../../lib/portfolio';
 import {
   DEMO_PROJECT_LABEL,
   DEMO_WORK_NOTE,
+  HERO,
   SECTIONS,
+  TRAVEL_HEADING,
   categoryLabel,
   content,
   serviceTitle,
@@ -121,8 +123,7 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
           {person.name}
         </h1>
         <p class="mt-5 max-w-[34ch] text-base leading-relaxed text-cine-screen/85 sm:text-lg">
-          Видеограф. Снимаю, монтирую и озвучиваю ролики, выезжаю на съёмки для туристических
-          компаний.
+          {HERO.lead}
         </p>
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
           <button
@@ -212,7 +213,7 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
                 data-category={p.category}
                 class:list={[
                   feature
-                    ? 'mb-4 sm:mb-0 lg:col-span-2'
+                    ? 'cine-feature mb-4 sm:mb-0 lg:col-span-2'
                     : 'cine-row border-t border-cine-line pt-6 sm:border-0 sm:pt-0',
                 ]}
               >
@@ -226,7 +227,7 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
                     tone={p.tone}
                     ratio={null}
                     class:list={[
-                      'col-start-1 row-start-1 aspect-[4/3] sm:aspect-[2.39/1]',
+                      'col-start-1 row-start-1 aspect-video sm:aspect-[2.39/1]',
                       !feature && 'row-span-2 sm:row-span-1',
                     ]}
                     description={`Кадр из проекта «${p.title}»`}
@@ -255,11 +256,16 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
                       {categoryLabel(p.category)}
                       {p.place && <span>, {p.place.toLowerCase()}</span>}
                     </p>
-                    {roles !== categoryLabel(p.category) && <p class="mt-1">{roles}</p>}
+                    {roles !== categoryLabel(p.category) && (
+                      <p class:list={['mt-1', !feature && 'max-sm:hidden']}>{roles}</p>
+                    )}
                     {p.placeholder && (
                       <PlaceholderTag
                         detail={DEMO_PROJECT_LABEL}
-                        class="mt-2 block text-xs text-cine-dim"
+                        class:list={[
+                          'block text-xs text-cine-dim',
+                          feature ? 'mt-2' : 'mt-1 sm:mt-2',
+                        ]}
                       />
                     )}
                   </div>
@@ -299,7 +305,8 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
       <div class="mx-auto grid max-w-wide gap-14 lg:grid-cols-12">
         <div class="lg:col-span-5">
           <h2 class="font-cine-display text-5xl leading-[0.95] font-light italic sm:text-7xl lg:text-6xl xl:text-7xl">
-            Съёмка путешествий
+            {TRAVEL_HEADING.main}
+            <span class="mt-3 block text-2xl text-cine-dim sm:text-3xl">{TRAVEL_HEADING.sub}</span>
           </h2>
           <p class="mt-6 max-w-[40ch] text-lg leading-relaxed">{travel.intro}</p>
           <h3 class="mt-8 text-sm font-medium tracking-wide text-cine-dim">Что получите</h3>
@@ -538,7 +545,7 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
       padding 0.25s ease-out;
   }
   .cine-header[data-scrolled] {
-    background: rgb(0 0 0 / 0.94);
+    background: color-mix(in oklab, var(--color-cine-void) 94%, transparent);
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--color-cine-line);
   }
@@ -551,6 +558,10 @@ const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 
     text-shadow:
       0 1px 2px rgb(0 0 0 / 0.9),
       0 0 12px rgb(0 0 0 / 0.6);
+  }
+  /* The feature frame leads the list: its subtitle is the largest caption. */
+  .cine-feature .cine-subtitle {
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
   }
   /* Phone programme rows: the title sits beside the thumbnail, not on it. */
   @media (max-width: 39.99rem) {

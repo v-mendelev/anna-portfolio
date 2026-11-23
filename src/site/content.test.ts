@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SECTIONS, categoryLabel, content, serviceTitle } from './content';
+import { HERO, SECTIONS, TRAVEL_HEADING, categoryLabel, content, serviceTitle } from './content';
 
 describe('portfolio content integrity', () => {
   const serviceIds = content.services.map((s) => s.id);
@@ -67,5 +67,28 @@ describe('portfolio content integrity', () => {
     expect(serviceTitle('voice')).toBe('Озвучка');
     expect(categoryLabel('travel')).toBe('Путешествия');
     expect(serviceTitle('unknown')).toBe('unknown');
+  });
+});
+
+describe('professional positioning', () => {
+  it('presents Anna as a videographer first: filming, editing, voice-over', () => {
+    expect(HERO.lead).toMatch(/^Видеограф\./);
+    expect(HERO.lead).toContain('Снимаю, монтирую и озвучиваю');
+    expect(HERO.lead).not.toMatch(/туристическ|путешеств/i);
+  });
+
+  it('frames travel production as a new direction without claimed projects', () => {
+    expect(HERO.next).toMatch(/новое направление/i);
+    expect(TRAVEL_HEADING.sub).toBe('новое направление');
+    expect(content.travel.intro).toMatch(/^Я начинаю/);
+    expect(content.travel.intro).toContain('Готовых туристических проектов пока нет');
+    const travelService = content.services.find((s) => s.id === 'travel');
+    expect(travelService?.summary).toMatch(/^Новое направление/);
+  });
+
+  it('keeps travel a minority of the invented demo projects', () => {
+    const travel = content.projects.filter((p) => p.category === 'travel');
+    expect(travel.length).toBeLessThan(content.projects.length / 2);
+    expect(content.projects.every((p) => p.placeholder)).toBe(true);
   });
 });

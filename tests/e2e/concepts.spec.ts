@@ -68,8 +68,9 @@ for (const slug of DEMO_SLUGS) {
       await expect(work.locator('[data-filter="all"]')).toHaveAttribute('aria-pressed', 'false');
       await expect(work.locator('[data-filter-status]')).toContainText('1');
 
+      // Travel is a new direction: two of the six invented demo projects.
       await work.locator('[data-filter="travel"]').click();
-      await expect(visible).toHaveCount(3);
+      await expect(visible).toHaveCount(2);
 
       await work.locator('[data-filter="all"]').click();
       await expect(visible).toHaveCount(6);
@@ -184,7 +185,13 @@ test.describe('@smoke concept-specific interactions', () => {
     await toggles.nth(0).click();
     await expect(toggles.nth(0)).toHaveAttribute('aria-expanded', 'true');
     await expect(details.nth(0)).toBeVisible();
-    await expect(details.nth(0)).toContainText('Что я делала');
+    await expect(details.nth(0)).toContainText('Что я делаю в таком проекте');
+    // The pulled-forward frame straightens (Tailwind tilts use the 'rotate' property).
+    await expect
+      .poll(() =>
+        page.locator('[data-card][data-front]').evaluate((el) => getComputedStyle(el).rotate),
+      )
+      .toMatch(/^(0deg|none)$/);
     await expect(page.locator('[data-card][data-front]')).toHaveCount(1);
 
     await toggles.nth(1).click();

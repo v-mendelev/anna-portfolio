@@ -55,15 +55,51 @@ for (const slug of DEMO_SLUGS) {
       }
     });
 
-    test('anchor jumps never hide a section heading under the header', async ({ page }) => {
+    test('the header rests see-through and turns solid exactly once on the way down', async ({
+      page,
+    }) => {
+      test.skip(slug === 'editorial', 'Editorial uses an always-opaque sticky header by design');
       await openConcept(page, slug);
-      for (const width of [320, 360, 390, 430]) {
+      await page.addStyleTag({ content: '*{transition:none!important}' });
+      const result = await page.evaluate(async () => {
+        const header = document.querySelector<HTMLElement>('[data-site-header]');
+        if (!header) return { atTop: true, changes: -1 };
+        const frame = () =>
+          new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        window.scrollTo(0, 0);
+        await frame();
+        const atTop = header.hasAttribute('data-scrolled');
+        // Scroll 1px at a time through the band where the header changes.
+        const anchor = header.dataset.solidAfter
+          ? document.querySelector<HTMLElement>(header.dataset.solidAfter)
+          : null;
+        const end = anchor ? anchor.offsetTop + anchor.offsetHeight : 0;
+        const from = Math.max(0, end - 110);
+        let prev: boolean | null = null;
+        let changes = 0;
+        for (let y = from; y <= from + 70; y++) {
+          window.scrollTo(0, y);
+          await frame();
+          const now = header.hasAttribute('data-scrolled');
+          if (prev !== null && now !== prev) changes++;
+          prev = now;
+        }
+        return { atTop, changes };
+      });
+      expect(result.atTop, 'not solid at the top of the page').toBe(false);
+      expect(result.changes, 'state flips while scrolling one way').toBe(1);
+    });
+
+    test('menu links land each section heading below the header', async ({ page }) => {
+      for (const width of [320, 360, 430]) {
         await page.setViewportSize({ width, height: PHONE.height });
+        await openConcept(page, slug);
+        const toggle = page.locator('[data-menu-toggle]');
+        const panel = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
         for (const id of CONCEPT_SECTIONS.filter((s) => s !== 'top')) {
-          await page.evaluate((target) => {
-            location.hash = '';
-            document.getElementById(target)?.scrollIntoView();
-          }, id);
+          await toggle.click();
+          await panel.locator(`a[href="#${id}"]`).click();
+          await expect(panel).toBeHidden();
           await expect
             .poll(
               () =>
@@ -178,6 +214,18 @@ for (const slug of DEMO_SLUGS) {
           );
           if (!hasText || !el.checkVisibility({ opacityProperty: true })) continue;
           if (el.closest('[data-footage]') && !el.closest('[data-placeholder]')) continue;
+          // Text laid over a footage frame (a sibling, e.g. subtitles or the hero
+          // title) sits on painted media: not measurable here, so skip it rather
+          // than measuring it against the section colour.
+          const box = el.getBoundingClientRect();
+          const overMedia = [...document.querySelectorAll('[data-footage]')].some((f) => {
+            if (f.contains(el)) return false;
+            const r = f.getBoundingClientRect();
+            return (
+              box.left < r.right && box.right > r.left && box.top < r.bottom && box.bottom > r.top
+            );
+          });
+          if (overMedia) continue;
           const bg = backdrop(el);
           if (!bg) continue;
           const style = getComputedStyle(el);
@@ -197,3 +245,78 @@ for (const slug of DEMO_SLUGS) {
     });
   });
 }
+
+/** Positioning and per-concept refinements from the final review. */
+for (const slug of DEMO_SLUGS) {
+  test.describe(`@smoke ${slug} positioning and first screen`, () => {
+    test.use({ viewport: PHONE, hasTouch: true });
+
+    test('hero presents a videographer; travel is a new direction in its own section', async ({
+      page,
+    }) => {
+      await openConcept(page, slug);
+      const hero = page.locator('#top');
+      await expect(hero).toContainText('Снимаю, монтирую и озвучиваю');
+      await expect(hero).not.toContainText(/туристическ/i);
+      await expect(page.locator('#travel h2')).toContainText('новое направление');
+      await expect(page.locator('#travel')).toContainText(
+        'Готовых туристических проектов пока нет',
+      );
+    });
+
+    test('no heading repeats the one right before it', async ({ page }) => {
+      await openConcept(page, slug);
+      const repeats = await page.evaluate(() => {
+        const norm = (s: string | null) =>
+          (s ?? '').replace(/­/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const heads = [...document.querySelectorAll('main h1, main h2, main h3, main dt')]
+          .filter((h) => h.checkVisibility())
+          .map((h) => norm(h.textContent));
+        return heads.filter((h, i) => i > 0 && h === heads[i - 1]);
+      });
+      expect(repeats).toEqual([]);
+    });
+
+    for (const viewport of [PHONE, { width: 320, height: 568 }]) {
+      test(`the contact CTA is on the first screen at ${viewport.width}×${viewport.height}`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(viewport);
+        await openConcept(page, slug);
+        const cta = page.locator('#top a[href="#contact"]').first();
+        await expect(cta).toBeVisible();
+        const box = await cta.boundingBox();
+        expect(box, 'CTA has a box').not.toBeNull();
+        expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
+      });
+    }
+  });
+}
+
+test.describe('@smoke concept-specific phone layout', () => {
+  test.use({ viewport: PHONE, hasTouch: true });
+
+  test('cinematic: portfolio rows carry only title, category and the demo label', async ({
+    page,
+  }) => {
+    await openConcept(page, 'cinematic');
+    const rows = page.locator('#work .cine-row');
+    expect(await rows.count()).toBe(5);
+    const blocks = await rows.evaluateAll((items) =>
+      items.map(
+        (row) =>
+          [...row.querySelectorAll('article > div > *')].filter((el) => el.checkVisibility())
+            .length,
+      ),
+    );
+    for (const n of blocks) expect(n).toBeLessThanOrEqual(2);
+  });
+
+  test('creative: montage frames are staggered, not full-bleed slabs', async ({ page }) => {
+    await openConcept(page, 'creative');
+    const widths = await page
+      .locator('#work [data-card]')
+      .evaluateAll((cards) => cards.map((c) => c.getBoundingClientRect().width / innerWidth));
+    for (const w of widths) expect(w).toBeLessThanOrEqual(0.9);
+  });
+});

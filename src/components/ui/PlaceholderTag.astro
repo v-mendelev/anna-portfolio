@@ -1,0 +1,25 @@
+---
+/**
+ * Visible marker for content that is not real client material yet.
+ * Every placeholder in a design MUST render one (enforced by E2E tests).
+ * Renders "Заглушка: <detail>". Pass a display class (e.g. "block") to change
+ * the default inline layout.
+ */
+import { PLACEHOLDER_LABEL } from '../../lib/portfolio';
+
+export interface Props {
+  /** What will replace the placeholder, e.g. "фото Анны". */
+  detail?: string;
+  class?: string;
+}
+
+const { detail, class: className = '' } = Astro.props;
+const hasDisplay = /(^|\s)(block|inline-block|flex|inline-flex|grid|hidden)(\s|$)/.test(className);
+const label = detail ? `${PLACEHOLDER_LABEL}:` : PLACEHOLDER_LABEL;
+---
+
+<span data-placeholder class:list={[!hasDisplay && 'inline-block', className]}>
+  <span>{label}</span>
+  {detail && ' '}
+  {detail && <span>{detail}</span>}
+</span>

@@ -13,9 +13,22 @@ export interface Props {
   description?: string;
   /** Force noindex regardless of PUBLIC_SITE_INDEXABLE. */
   noindex?: boolean;
+  /** Extra classes for <body> (page-level theme: background, text, selection). */
+  bodyClass?: string;
+  /** Browser UI colour (mobile address bar). */
+  themeColor?: string;
+  /** Skip-link styling for the page theme. */
+  skipLinkClass?: string;
 }
 
-const { title, description = siteConfig.description, noindex = false } = Astro.props;
+const {
+  title,
+  description = siteConfig.description,
+  noindex = false,
+  bodyClass,
+  themeColor,
+  skipLinkClass = 'bg-accent text-accent-ink',
+} = Astro.props;
 const fullTitle = title ? `${title} — ${siteConfig.name}` : siteConfig.name;
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
 const robots = noindex || !env.indexable ? 'noindex, nofollow' : 'index, follow';
@@ -33,6 +46,7 @@ const robots = noindex || !env.indexable ? 'noindex, nofollow' : 'index, follow'
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
     <link rel="icon" href={withBase('/favicon.ico')} sizes="32x32" />
+    {themeColor && <meta name="theme-color" content={themeColor} />}
     <meta property="og:type" content="website" />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -40,10 +54,13 @@ const robots = noindex || !env.indexable ? 'noindex, nofollow' : 'index, follow'
     <meta property="og:url" content={canonical} />
     <slot name="head" />
   </head>
-  <body>
+  <body class={bodyClass}>
     <a
       href="#main"
-      class="bg-accent text-accent-ink sr-only rounded px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
+      class:list={[
+        'sr-only rounded px-3 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:inline-flex focus:min-h-11 focus:items-center',
+        skipLinkClass,
+      ]}
     >
       Перейти к содержимому
     </a>

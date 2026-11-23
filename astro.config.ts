@@ -23,6 +23,14 @@ export default defineConfig({
   build: {
     format: 'directory',
   },
+  // Dev/preview server only (no effect on the static build). The default host
+  // `localhost` resolves to ::1 first on Windows, so Node listened on IPv6 only
+  // and http://127.0.0.1:4321 was refused. Bind IPv4 loopback explicitly.
+  // `--host` on the command line still overrides this (e.g. for LAN testing).
+  server: {
+    host: '127.0.0.1',
+    port: 4321,
+  },
   vite: {
     plugins: [tailwindcss()],
   },

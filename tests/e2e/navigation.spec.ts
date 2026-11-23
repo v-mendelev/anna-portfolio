@@ -18,7 +18,8 @@ test.describe('@smoke navigation', () => {
       await page.goto('design/');
       await page.getByTestId(`demo-link-${slug}`).click();
       await expect(page).toHaveURL(`${baseURL}design/${slug}/`);
-      await expect(page.locator('h1')).toHaveText(new RegExp(slug, 'i'));
+      await expect(page.locator(`[data-concept="${slug}"]`)).toBeVisible();
+      await expect(page.locator('h1')).toHaveText(/Шеленкова/);
 
       await page.getByTestId('back-to-design').click();
       await expect(page).toHaveURL(`${baseURL}design/`);
@@ -28,7 +29,7 @@ test.describe('@smoke navigation', () => {
 
 test.describe('@smoke not found', () => {
   // The browser logs the 404 document response itself as a console error.
-  test.use({ allowedIssues: [/Failed to load resource: .*404/] });
+  test.use({ allowedIssue: /Failed to load resource: .*404/ });
 
   test('unknown route shows the 404 page with working styles and links', async ({ page }) => {
     // `astro preview` serves 404.html for unknown paths (as GitHub Pages does).

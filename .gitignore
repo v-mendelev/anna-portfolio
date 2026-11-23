@@ -41,3 +41,6 @@ Desktop.ini
 
 # Claude Code local (per-developer) settings
 .claude/settings.local.json
+
+# review screenshots (scripts/screenshots.mjs)
+screenshots/

@@ -1,0 +1,623 @@
+---
+/**
+ * Concept A — Cinematic: "the dark screening room".
+ * The interface is the darkened hall; colour belongs only to the footage.
+ * Signatures: the hero screen recedes into the hall as you scroll (one
+ * scroll-linked moment), work captioned like subtitles, services set as an
+ * end-credits block.
+ */
+import FootageFrame from '../../ui/FootageFrame.astro';
+import Icon from '../../ui/Icon.astro';
+import PlaceholderTag from '../../ui/PlaceholderTag.astro';
+import { withBase } from '../../../lib/paths';
+import { usedCategories } from '../../../lib/portfolio';
+import {
+  DEMO_PROJECT_LABEL,
+  DEMO_WORK_NOTE,
+  HERO,
+  SECTIONS,
+  TRAVEL_HEADING,
+  categoryLabel,
+  content,
+  serviceTitle,
+} from '../../../site/content';
+
+const { person, services, projects, travel, testimonials, contacts } = content;
+const categories = usedCategories(content.categories, projects);
+const navLinks = SECTIONS.filter((s) => ['work', 'services', 'travel', 'contact'].includes(s.id));
+// A readable scene (sky, sun, horizon) above the title instead of an empty wash.
+const heroTone = { from: '#071a22', to: '#c9a57c', horizon: 42, sunX: 70, sunY: 22 };
+---
+
+<div class="cine bg-cine-void font-cine-text text-cine-screen" data-concept="cinematic">
+  <header
+    class="cine-header fixed inset-x-0 top-0 z-40 bg-gradient-to-b from-black/80 to-transparent pb-6"
+    data-site-header
+    data-solid-after="#top"
+  >
+    <div class="mx-auto flex max-w-wide items-center justify-between gap-6 px-4 pt-4 sm:px-8">
+      <a
+        href="#top"
+        class="inline-flex min-h-11 items-center font-cine-display text-2xl leading-none italic"
+      >
+        {person.name}
+      </a>
+      <nav aria-label="Разделы" class="hidden items-center gap-7 text-sm lg:flex">
+        {navLinks.map((s) => (
+          <a href={`#${s.id}`} class="cine-link">
+            {s.label}
+          </a>
+        ))}
+      </nav>
+      <button
+        type="button"
+        class="flex min-h-11 items-center gap-2 text-sm lg:hidden"
+        data-menu-toggle
+        aria-controls="cine-menu"
+        aria-expanded="false"
+      >
+        <Icon name="menu" />
+        <span>Меню</span>
+      </button>
+    </div>
+  </header>
+
+  <div
+    id="cine-menu"
+    class="fixed inset-0 z-50 overflow-y-auto bg-cine-void"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Меню"
+    data-menu-modal
+    hidden
+  >
+    <div class="flex items-center justify-between px-4 pt-4 sm:px-8">
+      <span class="font-cine-display text-2xl italic">{person.name}</span>
+      <button
+        type="button"
+        class="-mr-3 grid size-11 place-items-center"
+        data-menu-close
+        aria-label="Закрыть меню"
+      >
+        <Icon name="close" />
+      </button>
+    </div>
+    <nav aria-label="Меню" class="px-6 py-10">
+      <ul class="space-y-3">
+        {SECTIONS.map((s) => (
+          <li>
+            <a
+              href={`#${s.id}`}
+              class="inline-flex min-h-12 items-center font-cine-display text-4xl font-light italic"
+            >
+              {s.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a
+        href={withBase('/design/')}
+        class="mt-12 inline-flex min-h-11 items-center gap-2 text-sm text-cine-dim"
+      >
+        <Icon name="back" class="size-4" /> Все концепции
+      </a>
+    </nav>
+  </div>
+
+  <main id="main">
+    <section id="top" class="relative h-[100svh] min-h-[36rem] overflow-hidden">
+      <div class="cine-screen absolute inset-0">
+        <FootageFrame
+          tone={heroTone}
+          ratio="auto"
+          class="h-full w-full"
+          description="Фоновое видео: фрагмент шоурила"
+          placeholderDetail="фоновое видео"
+          tagClass="absolute top-20 right-4 bg-black/60 px-2 py-1 text-xs text-cine-screen sm:right-8"
+          eager
+        />
+        <div class="absolute inset-0 bg-gradient-to-t from-black from-10% via-black/70 via-35% to-black/0 to-60%"></div>
+      </div>
+      <div class="cine-title relative z-10 mx-auto flex h-full max-w-4xl flex-col items-center justify-end px-5 pb-[11svh] text-center">
+        <h1 class="font-cine-display text-[clamp(3rem,12vw,6rem)] leading-[0.92] font-light tracking-[-0.015em] text-balance italic">
+          {person.name}
+        </h1>
+        <p class="mt-5 max-w-[34ch] text-base leading-relaxed text-cine-screen/85 sm:text-lg">
+          {HERO.lead}
+        </p>
+        <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            class="cine-btn-primary"
+            data-dialog-open="cine-reel"
+            data-testid="showreel-open"
+          >
+            <Icon name="play" class="size-4" />
+            Смотреть шоурил
+          </button>
+          <a href="#contact" class="cine-btn-ghost">
+            Обсудить проект
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="showreel" class="px-4 py-24 sm:px-8 sm:py-32">
+      <div class="mx-auto max-w-wide">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <h2 class="font-cine-display text-5xl font-light italic sm:text-7xl">Шоурил</h2>
+          <p class="max-w-[38ch] text-cine-dim">
+            Лучшие кадры из разных проектов в одном ролике. Смотрите со звуком.
+          </p>
+        </div>
+        <div class="relative mt-10">
+          <FootageFrame
+            tone={{ from: '#14100c', to: '#b4643c' }}
+            ratio="2.39 / 1"
+            description="Обложка шоурила"
+            placeholderDetail="обложка шоурила"
+          />
+          <button
+            type="button"
+            class="group absolute inset-0 grid place-items-center"
+            data-dialog-open="cine-reel"
+            aria-label="Смотреть шоурил"
+          >
+            <span class="grid size-16 place-items-center rounded-full border border-cine-screen/70 bg-black/30 backdrop-blur-sm transition-transform duration-300 ease-out group-hover:scale-110 sm:size-24">
+              <Icon name="play" class="ml-1 size-6 sm:size-8" />
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section id="work" class="py-24 sm:py-32">
+      <div
+        class="mx-auto max-w-page px-4 sm:px-6 lg:px-8"
+        data-testid="page-container"
+        data-filter-root
+      >
+        <h2 class="font-cine-display text-5xl font-light italic sm:text-7xl">Работы</h2>
+        <p class="mt-5 max-w-[52ch] text-sm leading-relaxed text-cine-screen/85" data-demo-note>
+          {DEMO_WORK_NOTE}
+        </p>
+        <div class="mt-8 flex flex-wrap gap-2" role="group" aria-label="Фильтр работ">
+          <button type="button" class="cine-chip" data-filter="all" aria-pressed="true">
+            Все
+          </button>
+          {categories.map((c) => (
+            <button type="button" class="cine-chip" data-filter={c.id} aria-pressed="false">
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <p
+          class="mt-4 text-sm text-cine-dim"
+          data-filter-status
+          data-template="Показано работ: {n}"
+          aria-live="polite"
+        >
+          Показано работ: {projects.length}
+        </p>
+        {/*
+          Phone: one feature frame, then a compact "programme" of rows (thumbnail
+          + caption) so six placeholders do not read as six identical slabs.
+          From sm up every entry is a wide frame captioned like a subtitle.
+        */}
+        <ul class="mt-10 grid gap-x-8 gap-y-6 sm:gap-y-14 lg:grid-cols-2" data-project-list>
+          {projects.map((p, i) => {
+            const feature = i === 0;
+            const roles = p.roles.map(serviceTitle).join(', ');
+            return (
+              <li
+                data-category={p.category}
+                class:list={[
+                  feature
+                    ? 'cine-feature mb-4 sm:mb-0 lg:col-span-2'
+                    : 'cine-row border-t border-cine-line pt-6 sm:border-0 sm:pt-0',
+                ]}
+              >
+                <article
+                  class:list={[
+                    'grid',
+                    !feature && 'grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-4 sm:grid-cols-1',
+                  ]}
+                >
+                  <FootageFrame
+                    tone={p.tone}
+                    ratio={null}
+                    class:list={[
+                      'col-start-1 row-start-1 aspect-video sm:aspect-[2.39/1]',
+                      !feature && 'row-span-2 sm:row-span-1',
+                    ]}
+                    description={`Кадр из проекта «${p.title}»`}
+                    placeholder={p.placeholder}
+                    tag={false}
+                  />
+                  <h3
+                    class:list={[
+                      'relative z-10',
+                      feature
+                        ? 'col-start-1 row-start-1 self-end px-4 pb-[6%] text-center'
+                        : 'col-start-2 row-start-1 sm:col-start-1 sm:row-start-1 sm:self-end sm:px-4 sm:pb-[5%] sm:text-center',
+                    ]}
+                  >
+                    <span class="cine-subtitle">{p.title}</span>
+                  </h3>
+                  <div
+                    class:list={[
+                      'text-sm',
+                      feature
+                        ? 'row-start-2 mt-4'
+                        : 'col-start-2 row-start-2 mt-1 sm:col-start-1 sm:mt-4',
+                    ]}
+                  >
+                    <p class="text-cine-dim">
+                      {categoryLabel(p.category)}
+                      {p.place && <span>, {p.place.toLowerCase()}</span>}
+                    </p>
+                    {roles !== categoryLabel(p.category) && (
+                      <p class:list={['mt-1', !feature && 'max-sm:hidden']}>{roles}</p>
+                    )}
+                    {p.placeholder && (
+                      <PlaceholderTag
+                        detail={DEMO_PROJECT_LABEL}
+                        class:list={[
+                          'block text-xs text-cine-dim',
+                          feature ? 'mt-2' : 'mt-1 sm:mt-2',
+                        ]}
+                      />
+                    )}
+                  </div>
+                </article>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+
+    <section id="services" class="bg-cine-house px-4 py-24 sm:py-32">
+      <h2 class="text-center font-cine-display text-5xl font-light italic sm:text-7xl">Услуги</h2>
+      <p class="mx-auto mt-5 max-w-[42ch] text-center text-cine-dim">
+        Можно заказать всё вместе или одну часть работы.
+      </p>
+      <dl class="mx-auto mt-16 max-w-4xl space-y-14" data-credits>
+        {services.map((s) => (
+          <div class="grid gap-3 text-center sm:grid-cols-2 sm:gap-12 sm:text-left">
+            <dt class="font-cine-display text-3xl leading-tight font-light italic sm:text-right sm:text-4xl">
+              {s.displayTitle ?? s.title}
+            </dt>
+            <dd>
+              <p>{s.summary}</p>
+              <ul class="mt-3 space-y-1 text-sm text-cine-dim">
+                {s.includes.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+
+    <section id="travel" class="px-4 py-24 sm:px-8 sm:py-32">
+      <div class="mx-auto grid max-w-wide gap-14 lg:grid-cols-12">
+        <div class="lg:col-span-5">
+          <h2 class="font-cine-display text-5xl leading-[0.95] font-light italic sm:text-7xl lg:text-6xl xl:text-7xl">
+            {TRAVEL_HEADING.main}
+            <span class="mt-3 block text-2xl text-cine-dim sm:text-3xl">{TRAVEL_HEADING.sub}</span>
+          </h2>
+          <p class="mt-6 max-w-[40ch] text-lg leading-relaxed">{travel.intro}</p>
+          <h3 class="mt-8 text-sm font-medium tracking-wide text-cine-dim">Что получите</h3>
+          <ul class="mt-2 space-y-1 text-cine-screen/85">
+            {travel.formats.map((f) => (
+              <li>{f}</li>
+            ))}
+          </ul>
+        </div>
+        <div class="lg:col-span-7">
+          <FootageFrame
+            tone={{ from: '#0b2a2f', to: '#9fc2b8' }}
+            ratio="16 / 9"
+            description="Кадр с будущей выездной съёмки"
+            placeholderDetail="кадр с будущего выезда"
+            tagClass="absolute top-3 left-3 bg-black/60 px-2 py-1 text-xs text-cine-screen"
+          />
+          <ol class="mt-10 grid gap-8 sm:grid-cols-2">
+            {travel.steps.map((step, i) => (
+              <li class="border-t border-cine-line pt-4">
+                <h3 class="text-lg font-medium">
+                  <span class="mr-2 text-cine-dim tabular-nums">{i + 1}</span>
+                  {step.title}
+                </h3>
+                <p class="mt-2 text-cine-screen/85">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="bg-cine-house px-4 py-24 sm:px-8 sm:py-32">
+      <div class="mx-auto grid max-w-page items-center gap-12 md:grid-cols-2">
+        <FootageFrame
+          tone={{ from: '#1b1512', to: '#8a7a6c' }}
+          ratio="4 / 5"
+          class="max-w-md"
+          description="Портрет Анны"
+          placeholderDetail="фото Анны"
+          tagClass="absolute top-3 left-3 bg-black/60 px-2 py-1 text-xs text-cine-screen"
+        />
+        <div>
+          <h2 class="font-cine-display text-5xl font-light italic sm:text-7xl">Обо мне</h2>
+          <p class="mt-6 max-w-[48ch] text-lg leading-relaxed text-cine-screen/90">{person.bio}</p>
+          {person.placeholderBio && (
+            <PlaceholderTag detail="текст об Анне" class="mt-4 text-sm text-cine-dim" />
+          )}
+        </div>
+      </div>
+    </section>
+
+    <section id="reviews" class="px-4 py-24 sm:px-8 sm:py-32">
+      <h2 class="text-center font-cine-display text-5xl font-light italic sm:text-7xl">Отзывы</h2>
+      <div class="mx-auto mt-14 grid max-w-5xl gap-14 md:grid-cols-2">
+        {testimonials.map((t) => (
+          <figure class="text-center">
+            <blockquote class="font-cine-display text-2xl leading-snug italic sm:text-3xl">
+              {t.quote}
+            </blockquote>
+            <figcaption class="mt-5 text-sm text-cine-dim">
+              {t.author}
+              {t.company && `, ${t.company}`}
+              {t.placeholder && (
+                <span class="mt-2 block">
+                  <PlaceholderTag detail="реальный отзыв" />
+                </span>
+              )}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+
+    <section id="contact" class="border-t border-cine-line px-4 pt-24 pb-12 sm:px-8 sm:pt-32">
+      <div class="mx-auto max-w-wide">
+        <h2 class="font-cine-display text-[clamp(3rem,11vw,6rem)] leading-[0.95] font-light italic">
+          Обсудить проект
+        </h2>
+        <p class="mt-6 max-w-[44ch] text-lg text-cine-screen/90">
+          Напишите, что нужно снять, смонтировать или озвучить. Отвечу и предложу план.
+        </p>
+        <ul class="mt-12 divide-y divide-cine-line border-y border-cine-line" data-contacts>
+          {contacts.map((c) => (
+            <li class="flex flex-wrap items-baseline justify-between gap-2 py-5">
+              <span class="text-xl font-medium">{c.label}</span>
+              {c.href ? (
+                <a href={c.href} class="cine-link">
+                  {c.value}
+                </a>
+              ) : (
+                <PlaceholderTag detail="контакт появится" class="text-sm text-cine-dim" />
+              )}
+            </li>
+          ))}
+        </ul>
+        <footer class="mt-20 flex flex-wrap items-center justify-between gap-4 text-sm text-cine-dim">
+          <a
+            href={withBase('/design/')}
+            class="inline-flex min-h-11 items-center gap-2 hover:text-cine-screen"
+            data-testid="back-to-design"
+          >
+            <Icon name="back" class="size-4" /> Все концепции
+          </a>
+          <p>Концепция A. Работы, отзывы и контакты — заглушки до получения материалов.</p>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <dialog
+    id="cine-reel"
+    data-dialog
+    aria-label="Шоурил"
+    class="cine-dialog fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none bg-cine-void p-0 text-cine-screen backdrop:bg-black"
+  >
+    <div class="flex h-full flex-col">
+      <div class="flex items-center justify-between px-4 pt-4 sm:px-8">
+        <p class="font-cine-display text-2xl italic">Шоурил</p>
+        <button
+          type="button"
+          class="-mr-3 grid size-11 place-items-center"
+          data-dialog-close
+          aria-label="Закрыть шоурил"
+        >
+          <Icon name="close" />
+        </button>
+      </div>
+      <div class="flex flex-1 flex-col items-center justify-center gap-6 px-4 pb-10">
+        <FootageFrame
+          tone={{ from: '#14100c', to: '#b4643c' }}
+          ratio="16 / 9"
+          class="w-full max-w-6xl"
+          description="Видео шоурила"
+          placeholderDetail="видео шоурила"
+        />
+        <p class="max-w-[46ch] text-center text-cine-dim">
+          Здесь будет плеер со звуком, когда Анна пришлёт шоурил.
+        </p>
+      </div>
+    </div>
+  </dialog>
+</div>
+
+<script>
+  import { initDialogs } from '../../../lib/ui/dialog';
+  import { initFilters } from '../../../lib/ui/filter';
+  import { initHeaderState } from '../../../lib/ui/header';
+  import { initMenus } from '../../../lib/ui/menu';
+
+  initMenus();
+  initDialogs();
+  initFilters();
+  initHeaderState();
+</script>
+
+<style is:global>
+  html:has(.cine) {
+    color-scheme: dark;
+    scrollbar-color: var(--color-cine-line) var(--color-cine-void);
+  }
+  html[data-menu-open] {
+    overflow: hidden;
+  }
+
+  .cine :focus-visible {
+    outline-color: var(--color-cine-screen);
+  }
+  .cine ::selection {
+    background: var(--color-cine-screen);
+    color: var(--color-cine-void);
+  }
+
+  .cine-link {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color 0.2s ease-out;
+  }
+  .cine-link:hover {
+    text-decoration-color: currentColor;
+  }
+
+  .cine-btn-primary,
+  .cine-btn-ghost {
+    display: inline-flex;
+    min-height: 2.875rem;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    padding: 0 1.4rem;
+    font-size: 0.95rem;
+    transition:
+      background-color 0.2s ease-out,
+      color 0.2s ease-out;
+  }
+  .cine-btn-primary {
+    background: var(--color-cine-screen);
+    color: var(--color-cine-void);
+  }
+  .cine-btn-primary:hover {
+    background: #ffffff;
+  }
+  .cine-btn-ghost {
+    border: 1px solid color-mix(in oklab, var(--color-cine-screen) 45%, transparent);
+  }
+  .cine-btn-ghost:hover {
+    background: color-mix(in oklab, var(--color-cine-screen) 12%, transparent);
+  }
+
+  .cine-chip {
+    min-height: 2.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-cine-line);
+    padding: 0 1rem;
+    font-size: 0.9rem;
+    color: var(--color-cine-dim);
+    transition:
+      background-color 0.2s ease-out,
+      color 0.2s ease-out;
+  }
+  .cine-chip:hover {
+    color: var(--color-cine-screen);
+  }
+  .cine-chip[aria-pressed='true'] {
+    background: var(--color-cine-screen);
+    border-color: var(--color-cine-screen);
+    color: var(--color-cine-void);
+  }
+
+  /* Over the hero the header is a soft gradient; once the hero has passed it
+     becomes an opaque bar, so page text never runs into the name or menu. */
+  .cine-header {
+    transition:
+      background-color 0.25s ease-out,
+      padding 0.25s ease-out;
+  }
+  .cine-header[data-scrolled] {
+    background: color-mix(in oklab, var(--color-cine-void) 94%, transparent);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-cine-line);
+  }
+
+  /* Work captions set the way films are subtitled. */
+  .cine-subtitle {
+    font-size: clamp(0.95rem, 1.6vw, 1.35rem);
+    font-weight: 500;
+    color: #fff;
+    text-shadow:
+      0 1px 2px rgb(0 0 0 / 0.9),
+      0 0 12px rgb(0 0 0 / 0.6);
+  }
+  /* The feature frame leads the list: its subtitle is the largest caption. */
+  .cine-feature .cine-subtitle {
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+  }
+  /* Phone programme rows: the title sits beside the thumbnail, not on it. */
+  @media (max-width: 39.99rem) {
+    .cine-row .cine-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.3;
+      color: var(--color-cine-screen);
+      text-shadow: none;
+    }
+  }
+
+  /* The one orchestrated moment: as the hero scrolls away, the screen recedes
+     into the dark hall and the title card fades with it. */
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .cine-screen {
+        /* Longhands on purpose: the minifier folds a shorthand + animation-timeline
+           into one invalid shorthand and the scroll animation silently dies. */
+        animation-name: cine-recede;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: exit 0% exit 90%;
+        transform-origin: 50% 35%;
+      }
+      .cine-title {
+        /* Longhands on purpose: the minifier folds a shorthand + animation-timeline
+           into one invalid shorthand and the scroll animation silently dies. */
+        animation-name: cine-title-out;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: view();
+        animation-range: exit 0% exit 45%;
+      }
+      @keyframes cine-recede {
+        to {
+          transform: scale(0.82);
+          border-radius: 0.5rem;
+          filter: brightness(0.55);
+        }
+      }
+      @keyframes cine-title-out {
+        to {
+          opacity: 0;
+          transform: translateY(-6%);
+        }
+      }
+    }
+
+    .cine-dialog[open] {
+      animation: cine-lights-down 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes cine-lights-down {
+      from {
+        opacity: 0;
+      }
+    }
+  }
+</style>

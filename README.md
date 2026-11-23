@@ -37,9 +37,9 @@ pnpm build; pnpm preview
 ```
 
 - Выбор концепции: http://127.0.0.1:4321/design/
-- Cinematic: http://127.0.0.1:4321/design/cinematic/
-- Editorial: http://127.0.0.1:4321/design/editorial/
-- Creative: http://127.0.0.1:4321/design/creative/
+- Кадр: http://127.0.0.1:4321/design/cinematic/
+- Склейка: http://127.0.0.1:4321/design/editorial/
+- Рапид: http://127.0.0.1:4321/design/creative/
 
 Dev- и preview-сервер слушают `127.0.0.1:4321` (`server.host` в `astro.config.ts`):
 на Windows `localhost` разрешается в `::1`, и без этого сервер был доступен только по IPv6.

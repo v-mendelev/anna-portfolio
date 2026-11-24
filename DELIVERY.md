@@ -114,10 +114,10 @@ merge: он меняет `.github/`), затем:
    promotion/sync PR). Merge commits и squash оставить разрешёнными.
 6. **Rulesets — не ослаблять.** Проверено (публичный API, 2026-11-24): `main` и
    `dev` — запрет удаления и force-push, только PR, обязательный `CI passed`;
-   у `main` strict («up to date»). Рекомендуемое **усиление**: убрать у
-   `Protect dev` bypass для роли Admin (`.github/rulesets/dev.json` уже без
-   него) — Settings → Rules → Protect dev → Bypass list → удалить. App в bypass
-   **не добавлять**.
+   у `main` strict («up to date»). Bypass для роли Admin у живого `Protect dev`
+   владелец **оставил намеренно** (`.github/rulesets/dev.json` — без него);
+   конвейер и агенты им не пользуются: всё идёт только через PR и `CI passed`.
+   App в bypass **не добавлять**.
 7. Первый запуск: _Actions → Delivery · promote → Run workflow_ (ветка `main`).
    Если деревья `main` и `dev` совпадают (так после #5 и sync #6), запуск
    ничего не создаёт и не мёржит (`nothing-to-promote`). Если `dev` отстаёт от
@@ -201,7 +201,8 @@ SHA последней рабочей версии (виден в `delivery/live
   - в обоих rulesets закрепить check `CI passed` за GitHub Actions
     (`"integration_id": 15368`), чтобы его не мог «подделать» статусом другой
     источник;
-  - убрать Admin bypass у `Protect dev` (см. выше);
+  - Admin bypass у `Protect dev` оставлен владельцем намеренно (см. выше) — не
+    использовать и не менять без его решения;
   - строже, но меняет ручной процесс: сделать `delivery/approval` обязательным
     статусом в `Protect dev` (закреплённым за App) — тогда в `dev` не попадёт ничего
     без одобрения даже при сбое workflow, но и ручные PR (в т.ч. Dependabot)

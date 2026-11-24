@@ -21,7 +21,12 @@ feature/* ──PR──▶ dev ──PR──▶ main ──▶ GitHub Pages (d
 
 - `main` — защищена ruleset'ом: только PR, обязательный check `CI passed`,
   запрет force-push и удаления.
-- `dev` — запрет force-push и удаления, check `CI passed` в PR (админ может пушить напрямую).
+- `dev` — запрет force-push и удаления, check `CI passed` в PR (админ может пушить напрямую;
+  рекомендуется убрать этот bypass — см. [DELIVERY.md](DELIVERY.md#разовая-настройка-активация--только-после-согласования)).
+
+**Автоматическая доставка** одобренных изменений (`/publish-approve <SHA>` →
+auto-merge в `dev` → promotion PR → `main` → Pages → live smoke) описана в
+[DELIVERY.md](DELIVERY.md). Пока она не активирована, всё делается вручную.
 
 ## GitHub Pages
 
@@ -32,7 +37,10 @@ Workflow `.github/workflows/deploy-pages.yml`:
    → `DEPLOY_TARGET=github-pages`, `SITE_URL`, `BASE_PATH` → официальный
    **`withastro/action@v6`** собирает и загружает артефакт.
 3. `deploy` — `actions/deploy-pages@v5` в окружение `github-pages`.
-4. `verify` — curl всех маршрутов опубликованного сайта (ожидает 200).
+4. `verify` — live smoke (`node scripts/delivery/run.ts live-smoke`): ждёт, пока
+   `build-info.json` на сайте покажет SHA этого деплоя, затем проверяет 200 на всех
+   маршрутах из `tests/e2e/routes.ts` и на всех CSS/JS/шрифтах; результат — commit
+   status `delivery/live` (с URL сайта) и summary запуска.
 
 URL: https://v-mendelev.github.io/anna-portfolio/ (→ `/design/`).
 
@@ -66,6 +74,7 @@ PAT, которым настраивался репозиторий, не име
 2. **Re-deploy старой версии:** Actions → _Deploy demo to GitHub Pages_ →
    Run workflow (ветка `main`) → `ref` = SHA/тег рабочей версии. Workflow прогонит
    CI для этого SHA и опубликует его. Следующий push в `main` снова опубликует HEAD.
+   Live smoke проверит, что на сайте именно этот SHA.
 3. Ставьте теги на стабильные версии (`git tag demo-2026-11-23 && git push --tags`) —
    их удобно указывать в `ref`.
 

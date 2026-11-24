@@ -83,7 +83,7 @@ src/
   styles/        # global.css: Tailwind 4 + дизайн-токены (@theme)
   pages/         # маршруты: /design/, /design/{cinematic,editorial,creative}/
 tests/e2e/       # Playwright: smoke, навигация, концепции, шрифты, адаптивность
-scripts/         # dev-утилиты (расчёт fallback-метрик шрифтов)
+scripts/         # dev-утилиты (расчёт fallback-метрик шрифтов); delivery/ — CI-скрипт конвейера доставки
 tests/visual/    # визуальная регрессия (opt-in)
 deploy/timeweb/  # nginx-конфигурация для будущего Timeweb Cloud
 .github/         # CI/CD, rulesets, dependabot, шаблон PR
@@ -94,6 +94,7 @@ deploy/timeweb/  # nginx-конфигурация для будущего Timewe
 - [ARCHITECTURE.md](ARCHITECTURE.md) — архитектура, точки интеграции, использование как шаблона
 - [TESTING.md](TESTING.md) — стратегия тестирования
 - [DEPLOYMENT.md](DEPLOYMENT.md) — GitHub Pages, Timeweb, ветки, rollback, защита main
+- [DELIVERY.md](DELIVERY.md) — автоматическая доставка одобренных изменений до демо (GitHub App, auto-merge, live smoke)
 - [CLAUDE.md](CLAUDE.md) — правила разработки (для людей и ИИ-агентов)
 
 ## Использование как шаблона

@@ -197,3 +197,76 @@ test.describe('@smoke fonts: no layout shift', () => {
     });
   }
 });
+
+// TEMPORARY DIAGNOSTIC (to be removed before deploy): reports Linux CI font
+// geometry through a deliberately failing test (the github reporter turns the
+// error into a public check annotation). It changes no other test.
+test.describe('@diag fonts: platform geometry', () => {
+  test.use({ allowedIssue: /request failed: .*\.woff2|Failed to load resource: net::ERR_FAILED/ });
+
+  test('fallback vs web font widths', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'diagnostic');
+    const out: string[] = [];
+    await page.goto('design/');
+    const sample =
+      'Здесь будет короткий рассказ Анны о себе: с чего началась съёмка, как она работает и что любит снимать. Текст появится после согласования. Видеограф, монтаж, клипы, свадьбы, реклама.';
+    const cases: [string, string, number, string][] = [
+      ['Onest Variable', 'Onest Variable Fallback', 400, '100%'],
+      ['Onest Variable', 'Onest Variable Fallback', 500, '100%'],
+      ['Onest Variable', 'Onest Variable Fallback', 700, '100%'],
+      ['Onest Variable', 'Onest Variable Fallback', 900, '100%'],
+      ['Alumni Sans Variable', 'Alumni Sans Variable Fallback', 800, '100%'],
+      ['Noto Sans Display Variable', 'Noto Sans Display Variable Fallback', 400, '100%'],
+      ['Noto Sans Display Variable', 'Noto Sans Display Variable Fallback', 800, '100%'],
+      ['Noto Sans Display Variable', 'Noto Sans Display Variable Condensed Fallback', 800, '70%'],
+    ];
+    const res = await page.evaluate(
+      async ({ sample, cases }) => {
+        const w = (family: string, weight: number, stretch: string, size = 20) => {
+          const s = document.createElement('span');
+          s.style.cssText = `position:absolute;white-space:nowrap;font-family:${family};font-weight:${weight};font-stretch:${stretch};font-size:${size}px`;
+          s.textContent = sample;
+          document.body.append(s);
+          const width = s.getBoundingClientRect().width;
+          s.remove();
+          return width;
+        };
+        const lines: string[] = [];
+        for (const [web, fb, weight, stretch] of cases) {
+          await document.fonts.load(`${weight} 20px "${web}"`, sample);
+          const a = w(`"${web}"`, weight, stretch);
+          const b = w(`"${fb}"`, weight, stretch);
+          lines.push(
+            `${web.split(' ')[0]}/${fb.includes('Condensed') ? 'C' : ''}${weight}: fb/web=${(b / a).toFixed(4)}`,
+          );
+        }
+        const mono = w('monospace', 400, '100%');
+        for (const f of ['Arial', 'Liberation Sans', 'Arimo', 'Helvetica', 'Roboto'])
+          lines.push(`${f}:${w(`"${f}", monospace`, 400, '100%') === mono ? 'absent' : 'present'}`);
+        return lines;
+      },
+      { sample, cases },
+    );
+    out.push(...res);
+
+    for (const path of ['design/editorial/', 'design/cinematic/']) {
+      await page.setViewportSize({ width: 390, height: 900 });
+      const bio = () =>
+        page.evaluate(() => {
+          const p = document.querySelector<HTMLElement>('#about p');
+          if (!p) return 'none';
+          const r = document.createRange();
+          r.selectNodeContents(p);
+          return [...r.getClientRects()].map((x) => x.width.toFixed(1)).join(',');
+        });
+      await page.route('**/*.woff2', (r) => r.abort());
+      await page.goto(path);
+      const fb = await bio();
+      await page.unroute('**/*.woff2');
+      await page.reload();
+      await page.evaluate(() => document.fonts.ready);
+      out.push(`${path} bio@390 fb[${fb}] web[${await bio()}]`);
+    }
+    throw new Error(`DIAG ${out.join(' | ')}`);
+  });
+});

@@ -2,18 +2,22 @@
  * Handles `/publish-approve <sha>` comments on pull requests (issue_comment).
  *
  * Runs from the default branch's workflow definition and never checks out PR
- * code. On success it records the approval as an App-authored commit status on
- * the exact head SHA (the audit trail) and enables GitHub native auto-merge
- * bound to that SHA; required checks still gate the merge.
+ * code. A valid approval is recorded as an App-authored commit status on the
+ * exact head SHA, naming the PR, the approver and the comment (the audit trail
+ * the merge gate re-verifies). If CI for that SHA already passed, the PR is
+ * merged right away; otherwise delivery-merge.yml merges it when CI completes.
+ * No native auto-merge is used for feature PRs.
  */
 import type { DeliveryConfig } from './config.ts';
+import { mergeIfApproved, type MergeOutcome } from './merge.ts';
 import {
   commenterMayApprove,
   evaluateApproval,
+  formatApprovalRecord,
   parseApprovalCommand,
   type Commenter,
 } from './policy.ts';
-import type { GitHubApi, Logger } from './types.ts';
+import type { CiApi, GitHubApi, Logger } from './types.ts';
 
 export interface IssueCommentEvent {
   action: string;
@@ -31,18 +35,18 @@ export interface IssueCommentEvent {
 export type ApprovalOutcome =
   | { status: 'ignored'; reason: string }
   | { status: 'rejected'; reasons: string[] }
-  | { status: 'auto-merge-enabled'; sha: string }
+  /** Approval recorded; the PR merges when CI for this SHA passes. */
+  | { status: 'approved'; sha: string; merge: MergeOutcome['status'] }
   | { status: 'merged'; sha: string }
   | { status: 'recorded'; sha: string };
 
 export interface ApprovalContext {
   api: GitHubApi;
+  ci: CiApi;
   cfg: DeliveryConfig;
   appBotLogin: string;
   log: Logger;
 }
-
-export const FEATURE_MERGE_METHOD = 'SQUASH';
 
 export async function handleApprovalComment(
   event: IssueCommentEvent,
@@ -93,11 +97,16 @@ export async function handleApprovalComment(
     return { status: 'rejected', reasons: verdict.reasons };
   }
 
-  // Audit record: who approved which exact SHA, written with the App identity.
+  // Audit record bound to repository (where it lives), SHA (what it is on),
+  // PR, approver and comment — written with the App identity.
   await api.createStatus(sha, {
     state: 'success',
     context: cfg.approvalContext,
-    description: `Approved by ${commenter.login} (comment ${event.comment.id})`.slice(0, 140),
+    description: formatApprovalRecord({
+      pr: number,
+      approver: commenter.login,
+      commentId: event.comment.id,
+    }),
     targetUrl: event.comment.html_url,
   });
   log.info(`Recorded approval of ${sha} on PR #${number}.`);
@@ -112,34 +121,57 @@ export async function handleApprovalComment(
     return { status: 'recorded', sha };
   }
 
-  const result = await api.enableAutoMerge(pr, FEATURE_MERGE_METHOD, sha);
-  if (result === 'head-moved') {
-    await api.createComment(
-      number,
-      `Head moved after approval of \`${sha.slice(0, 12)}\` — auto-merge NOT enabled. Re-approve the new head.`,
-    );
-    return { status: 'rejected', reasons: ['head moved after approval'] };
-  }
-  if (result === 'clean') {
-    // Already mergeable (all required checks green): merge now, still bound to the SHA.
-    const merged = await api.mergePullRequest(number, sha, FEATURE_MERGE_METHOD);
-    if (merged === 'merged') {
-      log.info(`PR #${number} merged at ${sha}.`);
+  const merge = await mergeIfApproved(ctx, number, sha);
+  const short = `\`${sha.slice(0, 12)}\``;
+  switch (merge.status) {
+    case 'merged':
+      await api.createComment(
+        number,
+        `Publish approved for ${short} by ${commenter.login} and merged into \`${cfg.devBranch}\` (squash).`,
+      );
       return { status: 'merged', sha };
-    }
-    const fresh = await api.getPullRequest(number);
-    if (fresh.merged && fresh.head.sha === sha) return { status: 'merged', sha };
-    await api.createComment(
-      number,
-      `Could not merge \`${sha.slice(0, 12)}\` (${merged}). Nothing was merged.`,
-    );
-    return { status: 'rejected', reasons: [`merge failed: ${merged}`] };
+    case 'already-merged':
+      await api.createComment(
+        number,
+        `Publish approval for ${short} recorded; this commit is already merged into \`${cfg.devBranch}\`.`,
+      );
+      return { status: 'merged', sha };
+    case 'waiting-for-ci':
+      await api.createComment(
+        number,
+        `Publish approved for ${short} by ${commenter.login}. The delivery App merges it into ` +
+          `\`${cfg.devBranch}\` when CI passes for exactly this commit. New commits need a new approval.`,
+      );
+      return { status: 'approved', sha, merge: merge.status };
+    case 'ci-failed':
+      await api.createComment(
+        number,
+        `Publish approval for ${short} recorded, but CI failed for this commit (${merge.reason}). ` +
+          'Nothing was merged. Re-run CI (it merges on success) or push a fix and approve the new head.',
+      );
+      return { status: 'approved', sha, merge: merge.status };
+    case 'stale':
+      await api.createComment(
+        number,
+        `Head moved after approval of ${short} — nothing was merged. Approve the new head.`,
+      );
+      return { status: 'rejected', reasons: [merge.reason] };
+    case 'not-mergeable':
+      await api.createComment(
+        number,
+        `Publish approval for ${short} recorded, but GitHub refused the merge (${merge.reason}). ` +
+          'Nothing was merged. Resolve it, then approve the new head.',
+      );
+      return { status: 'rejected', reasons: [merge.reason] };
+    case 'not-approved':
+      await api.createComment(
+        number,
+        [
+          `**Publish approval rejected** for ${short} — nothing was merged.`,
+          '',
+          ...merge.reasons.map((r) => `- ${r}`),
+        ].join('\n'),
+      );
+      return { status: 'rejected', reasons: merge.reasons };
   }
-
-  await api.createComment(
-    number,
-    `Publish approved for \`${sha.slice(0, 12)}\` by ${commenter.login}. Auto-merge (squash) is enabled and ` +
-      `will merge into \`${cfg.devBranch}\` once all required checks pass. New commits revoke it.`,
-  );
-  return { status: 'auto-merge-enabled', sha };
 }

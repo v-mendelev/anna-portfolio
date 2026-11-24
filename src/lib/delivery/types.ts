@@ -67,6 +67,62 @@ export type AutoMergeResult =
 
 export type MergeResult = 'merged' | 'not-mergeable' | 'head-moved';
 
+/** A comment on a pull request (issue comment API). */
+export interface IssueComment {
+  id: number;
+  /** Number of the PR/issue the comment belongs to. */
+  issueNumber: number;
+  body: string;
+  author: Actor;
+  /** `author_association` as reported by GitHub (OWNER, MEMBER, …). */
+  association: string;
+}
+
+/** A GitHub Actions workflow run, as far as the merge gate needs it. */
+export interface WorkflowRun {
+  id: number;
+  name: string;
+  /** Workflow file path, e.g. ".github/workflows/ci.yml" (any "@ref" suffix removed). */
+  path: string;
+  /** Triggering event, e.g. "pull_request". */
+  event: string;
+  status: string;
+  conclusion: string | null;
+  headSha: string;
+  headBranch: string;
+  headRepoFullName: string;
+  /**
+   * Open PRs of this repository GitHub associates with the run (by head branch
+   * and SHA — not necessarily the PR that triggered it), with their base branch.
+   */
+  pullRequests: readonly { number: number; baseRef: string }[];
+  checkSuiteId: number;
+  createdAt: string;
+}
+
+/** A check run (e.g. the required "CI passed" job). */
+export interface CheckRun {
+  name: string;
+  status: string;
+  conclusion: string | null;
+  /** Slug of the app that created it; "github-actions" for workflow jobs. */
+  appSlug: string;
+  checkSuiteId: number;
+  headSha: string;
+}
+
+/**
+ * Read-only access to CI results. Backed by the workflow's own GITHUB_TOKEN
+ * (actions: read, checks: read) — never by the App, which has no such permissions.
+ */
+export interface CiApi {
+  /** Runs of one workflow file for a head SHA, triggered by pull_request. */
+  listWorkflowRuns(workflowFile: string, headSha: string): Promise<WorkflowRun[]>;
+  getWorkflowRun(id: number): Promise<WorkflowRun>;
+  /** Check runs with this name inside one check suite (= one workflow run). */
+  listCheckRuns(checkSuiteId: number, name: string): Promise<CheckRun[]>;
+}
+
 /**
  * The subset of the GitHub API the pipeline needs. Every method acts on the
  * single repository the token was minted for.
@@ -93,6 +149,8 @@ export interface GitHubApi {
   disableAutoMerge(pr: PullRequest): Promise<void>;
   mergePullRequest(number: number, sha: string, method: MergeMethod): Promise<MergeResult>;
   createComment(number: number, body: string): Promise<void>;
+  /** null when the comment does not exist (deleted). */
+  getIssueComment(id: number): Promise<IssueComment | null>;
   getBranchSha(branch: string): Promise<string | null>;
   deleteBranch(branch: string): Promise<void>;
   getCommit(sha: string): Promise<CommitInfo>;

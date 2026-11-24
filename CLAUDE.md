@@ -75,6 +75,8 @@
   другие PR и на новые коммиты.
 - Не одобрять PR, меняющие `.github/`, `scripts/delivery/`, `src/lib/delivery/`
   (конвейер их всё равно отклонит), и не мёржить promotion PR в обход блокировки.
+- Не включать native auto-merge на feature PR и не пользоваться bypass rulesets:
+  в `dev` feature PR мёржит только App после одобрения и зелёного CI.
 
 ## Что не делать без согласования
 

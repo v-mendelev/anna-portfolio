@@ -140,10 +140,15 @@ export interface Commenter extends Actor {
 
 /** Step 1 of approval, before any API call: is this person allowed to approve at all? */
 export function commenterMayApprove(commenter: Commenter, cfg: DeliveryConfig): boolean {
+  const login = commenter.login.toLowerCase();
+  // The repository owner is identified by the authenticated login itself;
+  // `author_association` is not always reported as OWNER for them. Everyone
+  // else additionally needs a write-access association.
+  const isOwner = login === cfg.owner.toLowerCase();
   return (
     !isBot(commenter) &&
-    TRUSTED_ASSOCIATIONS.has(commenter.association) &&
-    cfg.approvers.includes(commenter.login.toLowerCase())
+    cfg.approvers.includes(login) &&
+    (isOwner || TRUSTED_ASSOCIATIONS.has(commenter.association))
   );
 }
 

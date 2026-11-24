@@ -76,6 +76,21 @@ function statuses(out: Awaited<ReturnType<typeof handleWorkflowRun>>): string[] 
 }
 
 describe('approval → merge into dev at the approved SHA', () => {
+  it.each(['OWNER', 'CONTRIBUTOR', 'NONE'])(
+    "the repository owner's real comment event is accepted (author_association %s)",
+    async (association) => {
+      const { gh } = seededRepo();
+      const pr = featurePr(gh);
+      await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)); // CI already green, unapproved
+      const event = approval(gh, pr.number, pr.head.sha, { login: 'owner', association });
+      expect(await handleApprovalComment(event, ctx(gh))).toEqual({
+        status: 'merged',
+        sha: pr.head.sha,
+      });
+      expect(gh.merges).toEqual([{ number: pr.number, method: 'SQUASH', sha: pr.head.sha }]);
+    },
+  );
+
   it('valid approval, then successful CI: the App merges (squash) exactly that SHA', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
@@ -150,7 +165,7 @@ describe('approval → merge into dev at the approved SHA', () => {
     ['a contributor', { login: 'contributor', association: 'CONTRIBUTOR' }],
     ['a collaborator not on the approver list', { login: 'helper', association: 'COLLABORATOR' }],
     ['a bot', { login: 'owner[bot]', type: 'Bot', association: 'OWNER' }],
-    ['the owner login with a forged association', { login: 'owner', association: 'NONE' }],
+    ['a non-owner claiming the OWNER association', { login: 'mallory', association: 'OWNER' }],
   ])('unauthorized approver: command from %s is ignored silently', async (_label, who) => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);

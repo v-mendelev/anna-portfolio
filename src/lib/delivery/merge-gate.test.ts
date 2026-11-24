@@ -4,8 +4,9 @@
  */
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { readAppCredentials } from './config.ts';
+import { loadDeliveryConfig, readAppCredentials } from './config.ts';
 import {
+  commenterMayApprove,
   evaluateCi,
   evaluateMerge,
   formatApprovalRecord,
@@ -164,8 +165,10 @@ describe('evaluateMerge: approval bound to repository, PR, approver, comment and
       /not from an authorized approver/,
     ],
     [
-      'a comment with a non-write association',
-      { comment: { ...comment, association: 'CONTRIBUTOR' } },
+      'a comment by a non-owner claiming the OWNER association',
+      {
+        comment: { ...comment, author: { login: 'mallory', type: 'User' }, association: 'OWNER' },
+      },
       /not from an authorized approver/,
     ],
     [
@@ -252,5 +255,31 @@ describe('readAppCredentials: missing or invalid App credentials fail before any
     expect(error).toMatch(pattern);
     expect(error).not.toContain('ghp_notakey');
     expect(error).not.toContain('rm -rf');
+  });
+});
+
+describe('approver identity for this repository (v-mendelev/anna-portfolio)', () => {
+  const real = loadDeliveryConfig({
+    GITHUB_REPOSITORY: 'v-mendelev/anna-portfolio',
+    DELIVERY_REPOSITORY: 'v-mendelev/anna-portfolio',
+    DELIVERY_APPROVERS: 'v-mendelev',
+  });
+
+  it.each(['OWNER', 'CONTRIBUTOR', 'NONE'])(
+    'v-mendelev may approve (author_association %s)',
+    (association) => {
+      expect(commenterMayApprove({ login: 'v-mendelev', type: 'User', association }, real)).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    ['another user with write access', 'collaborator', 'COLLABORATOR', 'User'],
+    ['an outsider', 'stranger', 'NONE', 'User'],
+    ['an account claiming OWNER', 'mallory', 'OWNER', 'User'],
+    ['a bot under the owner name', 'v-mendelev[bot]', 'OWNER', 'Bot'],
+  ])('%s may not approve', (_label, login, association, type) => {
+    expect(commenterMayApprove({ login, type, association }, real)).toBe(false);
   });
 });

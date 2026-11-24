@@ -25,8 +25,9 @@ feature/* ──PR──▶ dev ──PR──▶ main ──▶ GitHub Pages (d
   рекомендуется убрать этот bypass — см. [DELIVERY.md](DELIVERY.md#разовая-настройка-активация--только-после-согласования)).
 
 **Автоматическая доставка** одобренных изменений (`/publish-approve <SHA>` →
-auto-merge в `dev` → promotion PR → `main` → Pages → live smoke) описана в
-[DELIVERY.md](DELIVERY.md). Пока она не активирована, всё делается вручную.
+merge App'ом в `dev` после зелёного CI → promotion PR → `main` → Pages → live
+smoke) описана в [DELIVERY.md](DELIVERY.md). Без переменной `DELIVERY_REPOSITORY`
+всё делается вручную.
 
 ## GitHub Pages
 

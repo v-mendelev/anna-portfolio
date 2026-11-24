@@ -3,26 +3,33 @@
  * Node strips TypeScript types natively and only built-in modules are used, so
  * no third-party code runs next to the App's private key).
  *
- *   node scripts/delivery/run.ts approve        # issue_comment
- *   node scripts/delivery/run.ts pull-request   # pull_request_target
- *   node scripts/delivery/run.ts promote        # push dev/main, workflow_dispatch
+ *   node scripts/delivery/run.ts approve        # issue_comment (/publish-approve <sha>)
+ *   node scripts/delivery/run.ts merge          # workflow_run: CI completed for a feature PR
+ *   node scripts/delivery/run.ts promote        # push dev/main, workflow_dispatch (+ branch cleanup)
  *   node scripts/delivery/run.ts live-smoke     # after the Pages deploy
  *
  * Env: GITHUB_REPOSITORY, GITHUB_EVENT_PATH, GITHUB_STEP_SUMMARY (set by Actions),
  * DELIVERY_REPOSITORY (activation switch), DELIVERY_APPROVERS, DELIVERY_APP_ID,
- * DELIVERY_APP_PRIVATE_KEY (secret). live-smoke: PAGE_URL, EXPECTED_SHA.
+ * DELIVERY_APP_PRIVATE_KEY (secret). approve/merge: GITHUB_TOKEN (read-only CI
+ * reader: actions: read, checks: read). live-smoke: PAGE_URL, EXPECTED_SHA.
  */
 import { appendFileSync, readFileSync } from 'node:fs';
 import { handleApprovalComment, type IssueCommentEvent } from '../../src/lib/delivery/approve.ts';
-import { DeliveryNotActivatedError, loadDeliveryConfig } from '../../src/lib/delivery/config.ts';
+import { cleanupMergedBranches } from '../../src/lib/delivery/cleanup.ts';
+import {
+  DeliveryNotActivatedError,
+  loadDeliveryConfig,
+  readAppCredentials,
+} from '../../src/lib/delivery/config.ts';
 import { formatLiveReport, runLiveCheck } from '../../src/lib/delivery/live.ts';
 import { runPromotion } from '../../src/lib/delivery/promote.ts';
 import {
-  handlePullRequestEvent,
-  type PullRequestEvent,
-} from '../../src/lib/delivery/pull-request-event.ts';
-import { createGitHubApi, createInstallationToken } from '../../src/lib/delivery/rest.ts';
+  createCiReader,
+  createGitHubApi,
+  createInstallationToken,
+} from '../../src/lib/delivery/rest.ts';
 import type { Logger } from '../../src/lib/delivery/types.ts';
+import { handleWorkflowRun, type WorkflowRunEvent } from '../../src/lib/delivery/workflow-run.ts';
 
 const log: Logger = {
   info: (message) => process.stdout.write(`${message}\n`),
@@ -64,31 +71,38 @@ async function liveSmoke(): Promise<number> {
 
 async function withApp(command: string): Promise<number> {
   const cfg = loadDeliveryConfig(process.env);
-  const app = await createInstallationToken({
-    appId: requireEnv('DELIVERY_APP_ID'),
-    privateKey: requireEnv('DELIVERY_APP_PRIVATE_KEY'),
-    repository: cfg.repository,
-  });
+  const credentials = readAppCredentials(process.env);
+  // Read-only CI reader (GITHUB_TOKEN); every write uses the App token below.
+  const ci =
+    command === 'promote'
+      ? null
+      : createCiReader({ token: requireEnv('GITHUB_TOKEN'), repository: cfg.repository });
+  const app = await createInstallationToken({ ...credentials, repository: cfg.repository });
   try {
-    const ctx = {
+    const base = {
       api: createGitHubApi({ token: app.token, repository: cfg.repository }),
       cfg,
       appBotLogin: app.botLogin,
       log,
     };
+    if (command === 'promote') {
+      const outcome = await runPromotion(base);
+      summary(`Delivery promote: \`${JSON.stringify(outcome)}\``);
+      const deleted = await cleanupMergedBranches(base);
+      summary(`Deleted merged branches: \`${JSON.stringify(deleted)}\``);
+      return outcome.status === 'sync-blocked' ? 1 : 0;
+    }
+    if (ci === null) throw new Error('CI reader is missing.');
     if (command === 'approve') {
-      const outcome = await handleApprovalComment(readEvent<IssueCommentEvent>(), ctx);
+      const outcome = await handleApprovalComment(readEvent<IssueCommentEvent>(), { ...base, ci });
       summary(`Delivery approve: \`${JSON.stringify(outcome)}\``);
       return outcome.status === 'rejected' ? 1 : 0;
     }
-    if (command === 'pull-request') {
-      const outcome = await handlePullRequestEvent(readEvent<PullRequestEvent>(), ctx);
-      summary(`Delivery pull request: \`${JSON.stringify(outcome)}\``);
-      return 0;
-    }
-    const outcome = await runPromotion(ctx);
-    summary(`Delivery promote: \`${JSON.stringify(outcome)}\``);
-    return outcome.status === 'sync-blocked' ? 1 : 0;
+    const outcome = await handleWorkflowRun(readEvent<WorkflowRunEvent>(), { ...base, ci });
+    summary(`Delivery merge: \`${JSON.stringify(outcome)}\``);
+    const refused =
+      outcome.status === 'evaluated' && outcome.results.some((r) => r.status === 'not-mergeable');
+    return refused ? 1 : 0;
   } finally {
     await app
       .revoke()
@@ -99,7 +113,7 @@ async function withApp(command: string): Promise<number> {
 async function main(): Promise<number> {
   const command = process.argv[2] ?? '';
   if (command === 'live-smoke') return liveSmoke();
-  if (!['approve', 'pull-request', 'promote'].includes(command)) {
+  if (!['approve', 'merge', 'promote'].includes(command)) {
     throw new Error(`Unknown command "${command}".`);
   }
   try {

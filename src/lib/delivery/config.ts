@@ -27,6 +27,12 @@ export interface DeliveryConfig {
    * `workflows` permission, so GitHub would refuse anyway).
    */
   manualOnlyPaths: readonly string[];
+  /** CI workflow whose successful pull_request run allows a merge into dev. */
+  ciWorkflowPath: string;
+  /** Required check (job) inside that workflow, also required by the dev ruleset. */
+  requiredCheck: string;
+  /** App that must have created the required check (GitHub Actions). */
+  ciAppSlug: string;
 }
 
 export interface DeliveryEnv {
@@ -99,5 +105,42 @@ export function loadDeliveryConfig(env: DeliveryEnv): DeliveryConfig {
     approvalContext: 'delivery/approval',
     promotionContext: 'delivery/promotion',
     manualOnlyPaths: DEFAULT_MANUAL_ONLY_PATHS,
+    ciWorkflowPath: '.github/workflows/ci.yml',
+    requiredCheck: 'CI passed',
+    ciAppSlug: 'github-actions',
   };
+}
+
+const PEM_RE =
+  /^-----BEGIN (?:RSA )?PRIVATE KEY-----\n[A-Za-z0-9+/=\s]+\n-----END (?:RSA )?PRIVATE KEY-----$/;
+
+export interface AppCredentials {
+  appId: string;
+  privateKey: string;
+}
+
+/**
+ * Validates the App credentials before any network call. Error messages never
+ * contain the values themselves.
+ */
+export function readAppCredentials(env: {
+  DELIVERY_APP_ID?: string | undefined;
+  DELIVERY_APP_PRIVATE_KEY?: string | undefined;
+}): AppCredentials {
+  const appId = (env.DELIVERY_APP_ID ?? '').trim();
+  // Secrets pasted on one line keep literal "\n" sequences.
+  const privateKey = (env.DELIVERY_APP_PRIVATE_KEY ?? '').replace(/\\n/g, '\n').trim();
+  if (!appId) throw new Error('DELIVERY_APP_ID is not set (repository variable).');
+  if (!/^\d+$/.test(appId) && !/^Iv[0-9A-Za-z.]+$/.test(appId)) {
+    throw new Error('DELIVERY_APP_ID must be the numeric App ID or the App client ID.');
+  }
+  if (!privateKey) {
+    throw new Error('DELIVERY_APP_PRIVATE_KEY is not set (secret of the "delivery" environment).');
+  }
+  if (!PEM_RE.test(privateKey)) {
+    throw new Error(
+      'DELIVERY_APP_PRIVATE_KEY is not a PEM private key (paste the whole .pem file).',
+    );
+  }
+  return { appId, privateKey };
 }

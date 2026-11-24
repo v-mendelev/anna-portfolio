@@ -1,11 +1,13 @@
 /**
  * End-to-end scenarios of the delivery pipeline against the in-memory GitHub:
- * approval → auto-merge into dev → branch cleanup → promotion → main.
+ * approval → merge at the approved SHA when CI passed (workflow_run) → branch
+ * cleanup → promotion → main.
  */
 import { describe, expect, it } from 'vitest';
 import { handleApprovalComment, type IssueCommentEvent } from './approve.ts';
+import { cleanupMergedBranches } from './cleanup.ts';
+import { formatApprovalRecord } from './policy.ts';
 import { runPromotion } from './promote.ts';
-import { handlePullRequestEvent } from './pull-request-event.ts';
 import type { FakeGitHub } from './testing.ts';
 import {
   APP_BOT,
@@ -16,30 +18,50 @@ import {
   silentLogger,
   testConfig,
 } from './testing.ts';
+import type { Actor, WorkflowRun } from './types.ts';
+import { handleWorkflowRun, type WorkflowRunEvent } from './workflow-run.ts';
 
 const cfg = testConfig();
 
 function ctx(gh: FakeGitHub) {
-  return { api: gh, cfg, appBotLogin: APP_BOT, log: silentLogger() };
+  return { api: gh, ci: gh, cfg, appBotLogin: APP_BOT, log: silentLogger() };
 }
 
+/** The approver writes `/publish-approve <sha>` on PR `number` (stored in the fake + event). */
 function approval(
+  gh: FakeGitHub,
   number: number,
   headSha: string,
   who: { login: string; type?: string; association?: string } = { login: OWNER.login },
 ): IssueCommentEvent {
+  const author: Actor = { login: who.login, type: who.type ?? 'User' };
+  const association = who.association ?? 'OWNER';
+  const c = gh.writeComment(number, `/publish-approve ${headSha}`, author, association);
   return {
     action: 'created',
     repository: { full_name: REPO },
     issue: { number, pull_request: {} },
     comment: {
-      id: 1000 + number,
-      body: `/publish-approve ${headSha}`,
-      html_url: `https://github.com/${REPO}/pull/${number}#issuecomment-1`,
-      author_association: who.association ?? 'OWNER',
-      user: { login: who.login, type: who.type ?? 'User' },
+      id: c.id,
+      body: c.body,
+      html_url: `https://github.com/${REPO}/pull/${number}#issuecomment-${c.id}`,
+      author_association: association,
+      user: author,
     },
   };
+}
+
+function runEvent(run: WorkflowRun, headSha = run.headSha): WorkflowRunEvent {
+  return {
+    action: 'completed',
+    repository: { full_name: REPO },
+    workflow_run: { id: run.id, head_sha: headSha },
+  };
+}
+
+/** CI finishes for the PR's current head; returns the workflow_run event GitHub would send. */
+function ciDone(gh: FakeGitHub, number: number, passed = true): WorkflowRunEvent {
+  return runEvent(gh.finishChecks(number, passed));
 }
 
 /** feature branch with one commit + open PR into dev. */
@@ -49,39 +71,78 @@ function featurePr(gh: FakeGitHub, name = 'feature/hero', files = ['src/site/con
   return gh.openPr({ head: name, base: 'dev', files });
 }
 
-describe('approval → merge into dev', () => {
-  it('authorized PR with passing CI is auto-merged (squash) at the approved SHA', async () => {
+function statuses(out: Awaited<ReturnType<typeof handleWorkflowRun>>): string[] {
+  return out.status === 'evaluated' ? out.results.map((r) => r.status) : [out.status];
+}
+
+describe('approval → merge into dev at the approved SHA', () => {
+  it('valid approval, then successful CI: the App merges (squash) exactly that SHA', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    const out = await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    expect(out).toEqual({ status: 'auto-merge-enabled', sha: pr.head.sha });
+    gh.startChecks(pr.number);
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(out).toEqual({ status: 'approved', sha: pr.head.sha, merge: 'waiting-for-ci' });
     expect(gh.statusOf(pr.head.sha, cfg.approvalContext)).toMatchObject({
       state: 'success',
       creatorLogin: APP_BOT,
+      description: expect.stringMatching(new RegExp(`^Approved PR #${pr.number} by owner `)),
     });
     expect(gh.merges).toHaveLength(0); // waits for CI
+    expect(gh.autoMerge.size).toBe(0); // no native auto-merge for feature PRs
 
-    gh.finishChecks(pr.number, true);
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual(['merged']);
     expect(gh.merges).toEqual([{ number: pr.number, method: 'SQUASH', sha: pr.head.sha }]);
-    expect(gh.pulls.get(pr.number)?.merged).toBe(true);
   });
 
-  it('failed CI blocks the merge; the PR stays open', async () => {
+  it('CI already passed: the approval merges immediately (still SHA-bound)', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    gh.finishChecks(pr.number, false);
+    // Green but unapproved: the CI-completed run merges nothing.
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(out).toEqual({ status: 'merged', sha: pr.head.sha });
+    expect(gh.merges).toHaveLength(1);
+  });
+
+  it('without any approval a green PR is never merged', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
+    await runPromotion(ctx(gh));
     expect(gh.merges).toHaveLength(0);
     expect(gh.pulls.get(pr.number)?.state).toBe('open');
   });
 
-  it('merges immediately (still SHA-bound) when checks were already green', async () => {
+  it('failed CI: nothing is merged; a later successful re-run of the same SHA merges', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    gh.finishChecks(pr.number, true);
-    const out = await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    expect(out.status).toBe('merged');
-    expect(gh.merges).toHaveLength(1);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(await handleWorkflowRun(ciDone(gh, pr.number, false), ctx(gh))).toEqual({
+      status: 'ignored',
+      reason: 'CI did not succeed',
+    });
+    expect(gh.merges).toHaveLength(0);
+    // Approving while the latest CI run is red reports it and merges nothing.
+    const again = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(again).toMatchObject({ status: 'approved', merge: 'ci-failed' });
+    expect(gh.merges).toHaveLength(0);
+    // Re-run of the same SHA passes → merged.
+    gh.startChecks(pr.number);
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual(['merged']);
+  });
+
+  it('pending CI: the approval waits; nothing merges until the run completes', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.startChecks(pr.number);
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(out).toMatchObject({ merge: 'waiting-for-ci' });
+    expect(gh.comments.at(-1)?.body).toMatch(/when CI passes for exactly this commit/);
+    expect(gh.merges).toHaveLength(0);
   });
 
   it.each([
@@ -90,37 +151,30 @@ describe('approval → merge into dev', () => {
     ['a collaborator not on the approver list', { login: 'helper', association: 'COLLABORATOR' }],
     ['a bot', { login: 'owner[bot]', type: 'Bot', association: 'OWNER' }],
     ['the owner login with a forged association', { login: 'owner', association: 'NONE' }],
-  ])('unauthorized PR stays open: command from %s is ignored silently', async (_label, who) => {
+  ])('unauthorized approver: command from %s is ignored silently', async (_label, who) => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    const out = await handleApprovalComment(approval(pr.number, pr.head.sha, who), ctx(gh));
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha, who), ctx(gh));
     expect(out.status).toBe('ignored');
     expect(gh.statuses.size).toBe(0);
-    expect(gh.autoMerge.size).toBe(0);
     expect(gh.comments).toHaveLength(0);
-    gh.finishChecks(pr.number, true);
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
     expect(gh.merges).toHaveLength(0);
-  });
-
-  it('without any approval a green PR is never merged by the pipeline', async () => {
-    const { gh } = seededRepo();
-    const pr = featurePr(gh);
-    gh.finishChecks(pr.number, true);
-    await runPromotion(ctx(gh));
-    expect(gh.merges).toHaveLength(0);
-    expect(gh.pulls.get(pr.number)?.state).toBe('open');
   });
 
   it.each([
     ['Dependabot', () => ({ author: DEPENDABOT, head: 'dependabot/npm/astro-8' })],
+    ['a Dependabot-authored feature branch', () => ({ author: DEPENDABOT })],
     ['a fork', () => ({ fork: true })],
     ['a draft', () => ({ draft: true })],
     ['a non-feature branch', () => ({ head: 'hotfix/x' })],
-  ])('rejects approval of %s', async (_label, variant) => {
+    ['a PR into main', () => ({ base: 'main' })],
+  ])('rejects approval of %s and never merges it', async (_label, variant) => {
     const { gh } = seededRepo();
     const v = variant() as {
       author?: typeof DEPENDABOT;
       head?: string;
+      base?: string;
       fork?: boolean;
       draft?: boolean;
     };
@@ -129,172 +183,287 @@ describe('approval → merge into dev', () => {
     gh.push(head);
     const pr = gh.openPr({
       head,
-      base: 'dev',
+      base: v.base ?? 'dev',
       ...(v.author ? { author: v.author } : {}),
       fork: v.fork ?? false,
       draft: v.draft ?? false,
     });
-    const out = await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
     expect(out.status).toBe('rejected');
-    expect(gh.autoMerge.size).toBe(0);
     expect(gh.statuses.size).toBe(0);
     expect(gh.comments.at(-1)?.body).toMatch(/rejected/);
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
+    expect(gh.merges).toHaveLength(0);
   });
 
-  it('rejects an approval of a stale SHA (new commits after review)', async () => {
+  it('rejects an approval of a stale SHA (new commits before the approval)', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
     const reviewed = pr.head.sha;
     gh.pushToPr(pr.number);
-    const out = await handleApprovalComment(approval(pr.number, reviewed), ctx(gh));
+    const out = await handleApprovalComment(approval(gh, pr.number, reviewed), ctx(gh));
     expect(out.status).toBe('rejected');
-    expect(gh.autoMerge.size).toBe(0);
+    expect(gh.statuses.size).toBe(0);
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
+    expect(gh.merges).toHaveLength(0);
+  });
+
+  it('new commits after the approval: neither the old nor the new head is merged', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    const approved = pr.head.sha;
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, approved), ctx(gh));
+    const oldRun = gh.runs.at(-1);
+    if (!oldRun) throw new Error('no run');
+    gh.pushToPr(pr.number); // the head moves before CI of the approved SHA finished
+    oldRun.status = 'completed';
+    oldRun.conclusion = 'success';
+    // CI of the OLD (approved) SHA completes: stale, the head is no longer that SHA.
+    expect(statuses(await handleWorkflowRun(runEvent(oldRun), ctx(gh)))).toEqual(['stale']);
+    // CI of the NEW head passes: there is no approval for it.
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
+  });
+
+  it('an approval belongs to one PR: another PR with the same head SHA is not merged', async () => {
+    const { gh } = seededRepo();
+    const first = featurePr(gh, 'feature/a');
+    gh.branches.set('feature/b', first.head.sha); // same commit, second branch + PR
+    const second = gh.openPr({ head: 'feature/b', base: 'dev', files: ['src/site/content.ts'] });
+    gh.startChecks(first.number);
+    await handleApprovalComment(approval(gh, first.number, first.head.sha), ctx(gh));
+    const out = await handleWorkflowRun(ciDone(gh, second.number), ctx(gh));
+    expect(out.status).toBe('evaluated');
+    const result = out.status === 'evaluated' ? out.results[0] : undefined;
+    expect(result).toMatchObject({ pr: second.number, status: 'not-approved' });
+    expect(result?.status === 'not-approved' ? result.reasons.join(' ') : '').toMatch(
+      new RegExp(`belongs to PR #${first.number}`),
+    );
+    expect(gh.merges).toHaveLength(0);
+  });
+
+  it('a retargeted PR (dev → main after the approval) is not merged', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    const live = gh.pulls.get(pr.number);
+    if (live) live.base.ref = 'main';
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
+  });
+
+  it('a PR converted to draft after the approval is not merged', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    const live = gh.pulls.get(pr.number);
+    if (live) live.draft = true;
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
   });
 
   it('rejects PRs that change the pipeline or workflows (needs a human merge)', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh, 'feature/ci', ['.github/workflows/ci.yml']);
-    const out = await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
+    const out = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
     expect(out).toMatchObject({ status: 'rejected' });
-    expect(gh.autoMerge.size).toBe(0);
-  });
-
-  it('new commits after approval disable auto-merge (pull_request_target synchronize)', async () => {
-    const { gh } = seededRepo();
-    const pr = featurePr(gh);
-    await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    gh.pushToPr(pr.number);
-    const out = await handlePullRequestEvent(
-      {
-        action: 'synchronize',
-        repository: { full_name: REPO },
-        pull_request: { number: pr.number },
-      },
-      ctx(gh),
-    );
-    expect(out.status).toBe('auto-merge-disabled');
-    gh.finishChecks(pr.number, true);
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
     expect(gh.merges).toHaveLength(0);
   });
 
-  it('retargeting an approved PR from dev to main revokes its auto-merge', async () => {
+  it('an approval status forged by another identity is not an approval', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    const live = gh.pulls.get(pr.number);
-    if (live) live.base.ref = 'main';
-    const out = await handlePullRequestEvent(
-      { action: 'edited', repository: { full_name: REPO }, pull_request: { number: pr.number } },
-      ctx(gh),
-    );
-    expect(out.status).toBe('auto-merge-disabled');
-    expect(gh.autoMerge.size).toBe(0);
-  });
-
-  it('the guard leaves pipeline-owned sync/promotion PRs alone', async () => {
-    const { gh } = seededRepo();
-    const feature = featurePr(gh);
-    await handleApprovalComment(approval(feature.number, feature.head.sha), ctx(gh));
-    gh.finishChecks(feature.number, true);
-    await runPromotion(ctx(gh));
-    const promo = [...gh.pulls.values()].find((p) => p.base.ref === 'main');
-    const out = await handlePullRequestEvent(
-      {
-        action: 'edited',
-        repository: { full_name: REPO },
-        pull_request: { number: promo?.number ?? 0 },
-      },
-      ctx(gh),
-    );
-    expect(out.status).toBe('auto-merge-kept');
-    expect(promo?.autoMergeEnabled).toBe(true);
-  });
-
-  it('a status forged by another identity is not an approval', async () => {
-    const { gh } = seededRepo();
-    const pr = featurePr(gh);
-    gh.autoMerge.set(pr.number, { method: 'SQUASH', sha: pr.head.sha });
-    const live = gh.pulls.get(pr.number);
-    if (live) live.autoMergeEnabled = true;
+    const c = gh.writeComment(pr.number, `/publish-approve ${pr.head.sha}`);
     gh.addStatus(pr.head.sha, {
       context: cfg.approvalContext,
       state: 'success',
       creatorLogin: 'github-actions[bot]',
-      description: 'forged',
+      description: formatApprovalRecord({ pr: pr.number, approver: 'owner', commentId: c.id }),
     });
-    const out = await handlePullRequestEvent(
-      {
-        action: 'synchronize',
-        repository: { full_name: REPO },
-        pull_request: { number: pr.number },
-      },
-      ctx(gh),
-    );
-    expect(out.status).toBe('auto-merge-disabled');
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
   });
 
-  it('duplicate approval events do not cause duplicate merges', async () => {
+  it('an edited or deleted approval comment invalidates the approval', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
-    const event = approval(pr.number, pr.head.sha);
+    gh.startChecks(pr.number);
+    const event = approval(gh, pr.number, pr.head.sha);
     await handleApprovalComment(event, ctx(gh));
-    await handleApprovalComment(event, ctx(gh));
-    gh.finishChecks(pr.number, true);
-    const replay = await handleApprovalComment(event, ctx(gh)); // replay after merge
-    expect(gh.merges).toHaveLength(1);
-    expect(replay.status).toBe('recorded');
+    const stored = gh.issueComments.get(event.comment.id);
+    if (stored) stored.body = `/publish-approve ${'0'.repeat(40)}`; // edited afterwards
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    gh.issueComments.delete(event.comment.id); // deleted
+    gh.startChecks(pr.number);
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-approved',
+    ]);
+    expect(gh.merges).toHaveLength(0);
   });
 
-  it('a failing API call stops safely before anything is merged', async () => {
+  it('only the PR’s own successful pull_request run of ci.yml can trigger a merge', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    const run = gh.runs.at(-1);
+    if (!run) throw new Error('no run');
+    run.status = 'completed';
+    run.conclusion = 'success';
+    const variants: Partial<WorkflowRun>[] = [
+      { path: '.github/workflows/other.yml' },
+      { event: 'push' },
+      { headRepoFullName: 'evil/site' },
+      { headBranch: 'hotfix/x' },
+      { conclusion: 'failure' },
+    ];
+    for (const variant of variants) {
+      const original = { ...run };
+      Object.assign(run, variant);
+      expect((await handleWorkflowRun(runEvent(run), ctx(gh))).status).toBe('ignored');
+      Object.assign(run, original);
+    }
+    // An event that names another SHA than the run itself is ignored as well.
+    expect((await handleWorkflowRun(runEvent(run, 'f'.repeat(40)), ctx(gh))).status).toBe(
+      'ignored',
+    );
+    expect(gh.merges).toHaveLength(0);
+  });
+
+  it('duplicate workflow_run events and a concurrent approval merge exactly once', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    const event = ciDone(gh, pr.number);
+    const [a, b] = await Promise.all([
+      handleWorkflowRun(event, ctx(gh)),
+      handleWorkflowRun(event, ctx(gh)),
+    ]);
+    expect([...statuses(a), ...statuses(b)].sort()).toEqual(['already-merged', 'merged']);
+    expect(statuses(await handleWorkflowRun(event, ctx(gh)))).toEqual(['already-merged']);
+    // A late duplicate approval comment only records; it never merges twice.
+    const replay = await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(replay.status).toBe('recorded');
+    expect(gh.merges).toHaveLength(1);
+  });
+
+  it.each([
+    [
+      'retargeted to main',
+      (gh: FakeGitHub, n: number) => {
+        const live = gh.pulls.get(n);
+        if (live) live.base.ref = 'main';
+      },
+    ],
+    [
+      'converted to draft',
+      (gh: FakeGitHub, n: number) => {
+        const live = gh.pulls.get(n);
+        if (live) live.draft = true;
+      },
+    ],
+    [
+      'approval comment deleted',
+      (gh: FakeGitHub) => {
+        gh.issueComments.clear();
+      },
+    ],
+  ])(
+    'state changes while the gate verifies (%s): re-validation stops the merge',
+    async (_label, change) => {
+      const { gh } = seededRepo();
+      const pr = featurePr(gh);
+      gh.startChecks(pr.number);
+      await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+      const event = ciDone(gh, pr.number);
+      gh.onCall.set('listCheckRuns', () => change(gh, pr.number)); // after the first read
+      expect(statuses(await handleWorkflowRun(event, ctx(gh)))).toEqual(['not-approved']);
+      expect(gh.merges).toHaveLength(0);
+    },
+  );
+
+  it('a merge conflict: GitHub refuses, nothing is merged, the PR stays open', async () => {
+    const { gh } = seededRepo();
+    const pr = featurePr(gh);
+    gh.conflicts.add(pr.number);
+    gh.startChecks(pr.number);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    expect(statuses(await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh)))).toEqual([
+      'not-mergeable',
+    ]);
+    expect(gh.merges).toHaveLength(0);
+    expect(gh.pulls.get(pr.number)?.state).toBe('open');
+  });
+
+  it.each(['getIssueComment', 'listWorkflowRuns', 'mergePullRequest'])(
+    'an API failure in %s stops safely: nothing merged (fail closed)',
+    async (method) => {
+      const { gh } = seededRepo();
+      const pr = featurePr(gh);
+      gh.startChecks(pr.number);
+      await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+      gh.failOn.set(method, new Error('GitHub is down'));
+      await expect(handleWorkflowRun(ciDone(gh, pr.number), ctx(gh))).rejects.toThrow(
+        'GitHub is down',
+      );
+      expect(gh.merges).toHaveLength(0);
+    },
+  );
+
+  it('a failure while recording the approval stops before anything is merged', async () => {
     const { gh } = seededRepo();
     const pr = featurePr(gh);
     gh.failOn.set('createStatus', new Error('GitHub is down'));
-    await expect(handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh))).rejects.toThrow(
-      'GitHub is down',
-    );
-    expect(gh.autoMerge.size).toBe(0);
-    gh.finishChecks(pr.number, true);
+    await expect(
+      handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh)),
+    ).rejects.toThrow('GitHub is down');
+    gh.failOn.clear();
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
     expect(gh.merges).toHaveLength(0);
   });
 });
 
-describe('branch cleanup after merge', () => {
-  const closed = (number: number) => ({
-    action: 'closed',
-    repository: { full_name: REPO },
-    pull_request: { number },
-  });
+describe('branch cleanup after merge (on push to dev)', () => {
+  async function publish(gh: FakeGitHub, name: string) {
+    const pr = featurePr(gh, name);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
+    return pr;
+  }
 
-  it('deletes the merged feature/* branch', async () => {
+  it('deletes only the merged, approved feature/* branch; idempotent', async () => {
     const { gh } = seededRepo();
-    const pr = featurePr(gh);
-    await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    gh.finishChecks(pr.number, true);
-    const out = await handlePullRequestEvent(closed(pr.number), ctx(gh));
-    expect(out).toEqual({ status: 'branch-deleted', branch: 'feature/hero' });
+    await publish(gh, 'feature/hero');
+    featurePr(gh, 'feature/open'); // open, unmerged
+    expect(await cleanupMergedBranches(ctx(gh))).toEqual(['feature/hero']);
     expect(gh.branches.has('feature/hero')).toBe(false);
-    // duplicate event: nothing left to delete, no error
-    expect(await handlePullRequestEvent(closed(pr.number), ctx(gh))).toMatchObject({
-      status: 'branch-kept',
-    });
+    expect(gh.branches.has('feature/open')).toBe(true);
+    expect(await cleanupMergedBranches(ctx(gh))).toEqual([]); // duplicate run
     expect(gh.deleted).toEqual(['feature/hero']);
   });
 
-  it('never deletes an unmerged branch or one with commits pushed after the merge', async () => {
+  it('keeps manually merged branches and branches with commits after the merge', async () => {
     const { gh } = seededRepo();
-    const open = featurePr(gh, 'feature/a');
-    const pr = gh.pulls.get(open.number);
-    if (pr) pr.state = 'closed'; // closed without merge
-    expect(await handlePullRequestEvent(closed(open.number), ctx(gh))).toMatchObject({
-      status: 'branch-kept',
-    });
-
-    const merged = featurePr(gh, 'feature/b');
-    gh.manualMerge(merged.number);
+    const manual = featurePr(gh, 'feature/manual');
+    gh.manualMerge(manual.number); // a human merged it without publish approval
+    await publish(gh, 'feature/b');
     gh.push('feature/b'); // someone kept working on the branch
-    expect(await handlePullRequestEvent(closed(merged.number), ctx(gh))).toMatchObject({
-      status: 'branch-kept',
-    });
+    expect(await cleanupMergedBranches(ctx(gh))).toEqual([]);
     expect(gh.deleted).toEqual([]);
   });
 
@@ -305,9 +474,7 @@ describe('branch cleanup after merge', () => {
     gh.manualMerge(promo.number, 'MERGE');
     const sync = gh.openPr({ head: 'main', base: 'dev' });
     gh.manualMerge(sync.number, 'MERGE');
-    await handlePullRequestEvent(closed(promo.number), ctx(gh));
-    await handlePullRequestEvent(closed(sync.number), ctx(gh));
-    expect(gh.deleted).toEqual([]);
+    expect(await cleanupMergedBranches(ctx(gh))).toEqual([]);
     expect(gh.branches.has('dev') && gh.branches.has('main')).toBe(true);
   });
 });
@@ -315,8 +482,9 @@ describe('branch cleanup after merge', () => {
 describe('promotion dev → main', () => {
   async function approvedAndMerged(gh: FakeGitHub, name: string, files?: string[]) {
     const pr = featurePr(gh, name, files);
-    await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh));
-    gh.finishChecks(pr.number, true);
+    await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh));
+    await handleWorkflowRun(ciDone(gh, pr.number), ctx(gh));
+    expect(gh.pulls.get(pr.number)?.merged).toBe(true);
     return pr;
   }
 
@@ -422,9 +590,9 @@ describe('promotion dev → main', () => {
     const pr = featurePr(gh, 'feature/late');
     gh.manualMerge(pr.number);
     expect((await runPromotion(ctx(gh))).status).toBe('promotion-blocked');
-    expect((await handleApprovalComment(approval(pr.number, pr.head.sha), ctx(gh))).status).toBe(
-      'recorded',
-    );
+    expect(
+      (await handleApprovalComment(approval(gh, pr.number, pr.head.sha), ctx(gh))).status,
+    ).toBe('recorded');
     expect((await runPromotion(ctx(gh))).status).toBe('promotion-auto-merge');
   });
 

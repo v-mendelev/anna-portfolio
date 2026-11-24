@@ -12,9 +12,10 @@
  */
 import type { DeliveryConfig } from './config.ts';
 import {
+  approvalKey,
   evaluatePromotion,
   evaluateSync,
-  isApprovalRecorded,
+  isApprovalRecordedFor,
   type PromotionDecision,
   type RangeCommit,
 } from './policy.ts';
@@ -116,16 +117,19 @@ async function rangeCommits(
   return result;
 }
 
-async function approvedHeads(
+/** Merged PRs whose final head SHA carries the App's approval record for that same PR. */
+async function approvedPullRequests(
   api: GitHubApi,
   commits: readonly RangeCommit[],
   ctx: PromotionContext,
 ): Promise<Set<string>> {
-  const heads = new Set(commits.flatMap((c) => c.pullRequests.map((pr) => pr.head.sha)));
+  const prs = new Map<string, PullRequest>();
+  for (const pr of commits.flatMap((c) => c.pullRequests))
+    prs.set(approvalKey(pr.number, pr.head.sha), pr);
   const approved = new Set<string>();
-  for (const sha of heads) {
-    if (isApprovalRecorded(await api.listStatuses(sha), ctx.cfg, ctx.appBotLogin))
-      approved.add(sha);
+  for (const [key, pr] of prs) {
+    const statuses = await api.listStatuses(pr.head.sha);
+    if (isApprovalRecordedFor(statuses, ctx.cfg, ctx.appBotLogin, pr.number)) approved.add(key);
   }
   return approved;
 }
@@ -213,7 +217,7 @@ export async function runPromotion(ctx: PromotionContext): Promise<PromotionOutc
       totalCommits: comparison.totalCommits,
       files: comparison.files,
       filesTruncated: comparison.filesTruncated,
-      approvedHeads: await approvedHeads(api, commits, ctx),
+      approvedPullRequests: await approvedPullRequests(api, commits, ctx),
     },
     cfg,
   );

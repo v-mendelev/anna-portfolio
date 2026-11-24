@@ -11,14 +11,18 @@ import { loadDeliveryConfig } from './config.ts';
 import type {
   Actor,
   AutoMergeResult,
+  CheckRun,
+  CiApi,
   CommitInfo,
   CommitStatus,
   Comparison,
   GitHubApi,
+  IssueComment,
   Logger,
   MergeMethod,
   MergeResult,
   PullRequest,
+  WorkflowRun,
 } from './types.ts';
 
 export const REPO = 'owner/site';
@@ -41,7 +45,7 @@ export function silentLogger(): Logger & { lines: string[] } {
 
 let counter = 0;
 
-export class FakeGitHub implements GitHubApi {
+export class FakeGitHub implements GitHubApi, CiApi {
   readonly commits = new Map<string, CommitInfo>();
   readonly commitFiles = new Map<string, string[]>();
   readonly branches = new Map<string, string>();
@@ -57,7 +61,15 @@ export class FakeGitHub implements GitHubApi {
   readonly greenChecks = new Set<number>();
   /** Inject failures: method name → error. */
   readonly failOn = new Map<string, Error>();
+  /** Comments people wrote (looked up by the merge gate). */
+  readonly issueComments = new Map<number, IssueComment>();
+  readonly runs: WorkflowRun[] = [];
+  readonly checkRuns: CheckRun[] = [];
+  /** PRs GitHub refuses to merge (merge conflict). */
+  readonly conflicts = new Set<number>();
   private nextPr = 1;
+  private nextRun = 1;
+  private nextComment = 5000;
 
   // ---------- builders ----------
 
@@ -116,17 +128,82 @@ export class FakeGitHub implements GitHubApi {
     return pr;
   }
 
-  /** Simulates the end of the required checks ("CI passed") for a PR's current head. */
-  finishChecks(number: number, passed: boolean): void {
+  /** A person comments on a PR; returns the comment (its id is what approvals reference). */
+  writeComment(
+    number: number,
+    body: string,
+    author: Actor = OWNER,
+    association = 'OWNER',
+  ): IssueComment {
+    const comment = { id: this.nextComment++, issueNumber: number, body, author, association };
+    this.issueComments.set(comment.id, comment);
+    return structuredClone(comment);
+  }
+
+  /** CI starts for a PR's current head (workflow run + required check in progress). */
+  startChecks(number: number): WorkflowRun {
     const pr = this.pull(number);
+    const id = this.nextRun++;
+    const run: WorkflowRun = {
+      id,
+      name: 'CI',
+      path: '.github/workflows/ci.yml',
+      event: 'pull_request',
+      status: 'in_progress',
+      conclusion: null,
+      headSha: pr.head.sha,
+      headBranch: pr.head.ref,
+      headRepoFullName: pr.head.repoFullName,
+      pullRequests: pr.head.repoFullName === REPO ? [{ number, baseRef: pr.base.ref }] : [],
+      checkSuiteId: 900 + id,
+      createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, id)).toISOString(),
+    };
+    this.runs.push(run);
+    this.checkRuns.push({
+      name: 'CI passed',
+      status: 'in_progress',
+      conclusion: null,
+      appSlug: 'github-actions',
+      checkSuiteId: run.checkSuiteId,
+      headSha: pr.head.sha,
+    });
+    return structuredClone(run);
+  }
+
+  /**
+   * Simulates the end of the required checks ("CI passed") for a PR's current
+   * head: completes the latest CI run (or a new one) and returns it, so tests
+   * can deliver the matching workflow_run event.
+   */
+  finishChecks(number: number, passed: boolean): WorkflowRun {
+    const pr = this.pull(number);
+    let run = [...this.runs]
+      .reverse()
+      .find(
+        (r) =>
+          r.headSha === pr.head.sha && r.headBranch === pr.head.ref && r.status !== 'completed',
+      );
+    if (!run) {
+      this.startChecks(number);
+      run = this.runs.at(-1);
+    }
+    if (!run) throw new Error('no run');
+    run.status = 'completed';
+    run.conclusion = passed ? 'success' : 'failure';
+    const suite = run.checkSuiteId;
+    for (const c of this.checkRuns.filter((x) => x.checkSuiteId === suite)) {
+      c.status = 'completed';
+      c.conclusion = passed ? 'success' : 'failure';
+    }
     if (!passed) {
       this.greenChecks.delete(number);
-      return;
+      return structuredClone(run);
     }
     this.greenChecks.add(number);
     const auto = this.autoMerge.get(number);
     if (auto && pr.state === 'open' && !pr.draft && auto.sha === pr.head.sha)
       this.performMerge(pr, auto.method);
+    return structuredClone(run);
   }
 
   /** A human merges in the UI (no automation involved). */
@@ -152,7 +229,16 @@ export class FakeGitHub implements GitHubApi {
   private maybeFail(method: string): void {
     const error = this.failOn.get(method);
     if (error) throw error;
+    // One-shot hook: simulates someone changing the PR while the gate is reading.
+    const hook = this.onCall.get(method);
+    if (hook) {
+      this.onCall.delete(method);
+      hook();
+    }
   }
+
+  /** Method name → action run once when that method is next called. */
+  readonly onCall = new Map<string, () => void>();
 
   private ancestors(start: string): string[] {
     const order: string[] = [];
@@ -286,15 +372,56 @@ export class FakeGitHub implements GitHubApi {
   }
 
   async mergePullRequest(number: number, id: string, method: MergeMethod): Promise<MergeResult> {
+    this.maybeFail('mergePullRequest');
     const pr = this.pull(number);
     if (pr.head.sha !== id) return 'head-moved';
-    if (pr.state !== 'open' || !this.greenChecks.has(number)) return 'not-mergeable';
+    // Branch protection: required "CI passed" for the head; no draft; no conflict.
+    if (
+      pr.state !== 'open' ||
+      pr.draft ||
+      !this.greenChecks.has(number) ||
+      this.conflicts.has(number)
+    )
+      return 'not-mergeable';
     this.performMerge(pr, method);
     return 'merged';
   }
 
   async createComment(number: number, body: string): Promise<void> {
     this.comments.push({ number, body });
+  }
+
+  async getIssueComment(id: number): Promise<IssueComment | null> {
+    this.maybeFail('getIssueComment');
+    const c = this.issueComments.get(id);
+    return c ? structuredClone(c) : null;
+  }
+
+  // ---------- CiApi ----------
+
+  async listWorkflowRuns(workflowFile: string, headSha: string): Promise<WorkflowRun[]> {
+    this.maybeFail('listWorkflowRuns');
+    return this.runs
+      .filter(
+        (r) =>
+          r.path.endsWith(`/${workflowFile}`) &&
+          r.headSha === headSha &&
+          r.event === 'pull_request',
+      )
+      .map((r) => structuredClone(r));
+  }
+
+  async getWorkflowRun(id: number): Promise<WorkflowRun> {
+    const run = this.runs.find((r) => r.id === id);
+    if (!run) throw new Error(`no run ${id}`);
+    return structuredClone(run);
+  }
+
+  async listCheckRuns(checkSuiteId: number, name: string): Promise<CheckRun[]> {
+    this.maybeFail('listCheckRuns');
+    return this.checkRuns
+      .filter((c) => c.checkSuiteId === checkSuiteId && c.name === name)
+      .map((c) => structuredClone(c));
   }
 
   async getBranchSha(branch: string): Promise<string | null> {

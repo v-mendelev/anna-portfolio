@@ -2,6 +2,7 @@ import { createVerify, generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   createAppJwt,
+  createCiReader,
   createGitHubApi,
   createInstallationToken,
   TOKEN_PERMISSIONS,
@@ -196,6 +197,149 @@ describe('createGitHubApi', () => {
     expect(await api.listPullRequestFiles(3)).toEqual({
       files: ['docs/ci.yml', '.github/workflows/ci.yml'],
       truncated: false,
+    });
+  });
+});
+
+describe('App credentials at runtime', () => {
+  it('invalid credentials (GitHub answers 401) stop the run without echoing secrets', async () => {
+    const f = fakeFetch({
+      'GET /app': { status: 401, body: { message: 'A JSON web token could not be decoded' } },
+    });
+    const error = await createInstallationToken({
+      appId: '1',
+      privateKey: PEM,
+      repository: 'owner/site',
+      fetch: f.fetch,
+    }).catch((e: unknown) => e);
+    expect(String(error)).toMatch(/Cannot authenticate as the App/);
+    expect(String(error)).not.toContain('PRIVATE KEY');
+    expect(f.calls.filter((c) => c.url.includes('access_tokens'))).toHaveLength(0);
+  });
+});
+
+describe('approval comment lookup', () => {
+  it('maps the comment and the PR it belongs to; a deleted comment is null', async () => {
+    const f = fakeFetch({
+      'GET /repos/owner/site/issues/comments/42': {
+        status: 200,
+        body: {
+          id: 42,
+          body: '/publish-approve abc',
+          issue_url: 'https://api.github.com/repos/owner/site/issues/7',
+          author_association: 'OWNER',
+          user: { login: 'owner', type: 'User' },
+        },
+      },
+    });
+    const api = createGitHubApi({ token: 't', repository: 'owner/site', fetch: f.fetch });
+    expect(await api.getIssueComment(42)).toEqual({
+      id: 42,
+      issueNumber: 7,
+      body: '/publish-approve abc',
+      author: { login: 'owner', type: 'User' },
+      association: 'OWNER',
+    });
+    expect(await api.getIssueComment(43)).toBeNull();
+  });
+});
+
+describe('createCiReader (GITHUB_TOKEN, read-only)', () => {
+  const restRun = {
+    id: 11,
+    name: 'CI',
+    path: '.github/workflows/ci.yml@refs/pull/7/merge',
+    event: 'pull_request',
+    status: 'completed',
+    conclusion: 'success',
+    head_sha: 'a'.repeat(40),
+    head_branch: 'feature/x',
+    head_repository: { full_name: 'owner/site' },
+    pull_requests: [
+      { number: 7, base: { ref: 'dev', repo: { url: 'https://api.github.com/repos/owner/site' } } },
+      { number: 3, base: { ref: 'dev', repo: { url: 'https://api.github.com/repos/evil/site' } } },
+    ],
+    check_suite_id: 500,
+    created_at: '2026-01-01T00:00:00Z',
+  };
+
+  it('reads runs and checks; keeps only PR associations of this repository', async () => {
+    const sha = 'a'.repeat(40);
+    const f = fakeFetch({
+      [`GET /repos/owner/site/actions/workflows/ci.yml/runs?head_sha=${sha}&event=pull_request&per_page=50`]:
+        { status: 200, body: { workflow_runs: [restRun] } },
+      'GET /repos/owner/site/actions/runs/11': { status: 200, body: restRun },
+      'GET /repos/owner/site/check-suites/500/check-runs?check_name=CI+passed&filter=latest&per_page=100':
+        {
+          status: 200,
+          body: {
+            check_runs: [
+              {
+                name: 'CI passed',
+                status: 'completed',
+                conclusion: 'success',
+                head_sha: sha,
+                app: { slug: 'github-actions' },
+                check_suite: { id: 500 },
+              },
+            ],
+          },
+        },
+    });
+    const ci = createCiReader({ token: 'gh-token', repository: 'owner/site', fetch: f.fetch });
+    const [run] = await ci.listWorkflowRuns('ci.yml', sha);
+    expect(run).toMatchObject({
+      path: '.github/workflows/ci.yml',
+      pullRequests: [{ number: 7, baseRef: 'dev' }],
+      checkSuiteId: 500,
+      headRepoFullName: 'owner/site',
+    });
+    expect(await ci.getWorkflowRun(11)).toEqual(run);
+    expect(await ci.listCheckRuns(500, 'CI passed')).toEqual([
+      {
+        name: 'CI passed',
+        status: 'completed',
+        conclusion: 'success',
+        appSlug: 'github-actions',
+        checkSuiteId: 500,
+        headSha: sha,
+      },
+    ]);
+    expect(f.calls.every((c) => c.method === 'GET' && c.auth === 'Bearer gh-token')).toBe(true);
+  });
+
+  it('fails closed on API errors', async () => {
+    const ci = createCiReader({ token: 't', repository: 'owner/site', fetch: fakeFetch({}).fetch });
+    await expect(ci.getWorkflowRun(1)).rejects.toThrow(/404/);
+  });
+});
+
+describe('commit statuses', () => {
+  it('reads every page so a flood of other statuses cannot hide the App record', async () => {
+    const sha = 'b'.repeat(40);
+    const other = { context: 'x', state: 'success', description: null, creator: { login: 'x' } };
+    const own = {
+      context: 'delivery/approval',
+      state: 'success',
+      description: 'd',
+      creator: { login: 'site-delivery[bot]' },
+    };
+    const f = fakeFetch({
+      [`GET /repos/owner/site/commits/${sha}/statuses?per_page=100&page=1`]: {
+        status: 200,
+        body: Array.from({ length: 100 }, () => other),
+      },
+      [`GET /repos/owner/site/commits/${sha}/statuses?per_page=100&page=2`]: {
+        status: 200,
+        body: [own],
+      },
+    });
+    const api = createGitHubApi({ token: 't', repository: 'owner/site', fetch: f.fetch });
+    const list = await api.listStatuses(sha);
+    expect(list).toHaveLength(101);
+    expect(list.at(-1)).toMatchObject({
+      context: 'delivery/approval',
+      creatorLogin: 'site-delivery[bot]',
     });
   });
 });

@@ -4,8 +4,11 @@ import {
   commenterMayApprove,
   evaluateCleanup,
   evaluateSync,
-  isApprovalRecorded,
+  formatApprovalRecord,
+  isApprovalRecordedFor,
   isFeatureBranch,
+  latestApproval,
+  parseApprovalRecord,
   isProtectedBranch,
   parseApprovalCommand,
 } from './policy.ts';
@@ -75,19 +78,41 @@ describe('approvers', () => {
   });
 });
 
-describe('isApprovalRecorded', () => {
+describe('approval record', () => {
+  const record = { pr: 7, approver: 'owner', commentId: 123 };
   const ok = {
     context: cfg.approvalContext,
     state: 'success' as const,
     creatorLogin: APP_BOT,
-    description: '',
+    description: formatApprovalRecord(record),
   };
-  it('needs the newest App-authored approval status to be success', () => {
-    expect(isApprovalRecorded([ok], cfg, APP_BOT)).toBe(true);
-    expect(isApprovalRecorded([{ ...ok, state: 'failure' }, ok], cfg, APP_BOT)).toBe(false);
-    expect(isApprovalRecorded([{ ...ok, creatorLogin: 'owner' }], cfg, APP_BOT)).toBe(false);
-    expect(isApprovalRecorded([{ ...ok, context: 'ci' }], cfg, APP_BOT)).toBe(false);
-    expect(isApprovalRecorded([], cfg, APP_BOT)).toBe(false);
+
+  it('round-trips PR, approver and comment, and fits a commit status', () => {
+    expect(parseApprovalRecord(ok.description)).toEqual(record);
+    expect(ok.description.length).toBeLessThanOrEqual(140);
+  });
+
+  it.each([
+    ['the legacy format', 'Approved by owner (comment 123)'],
+    ['extra text', `${formatApprovalRecord(record)} ok`],
+    ['no PR', 'Approved PR # by owner (comment 1)'],
+  ])('rejects %s (fail closed)', (_label, description) => {
+    expect(parseApprovalRecord(description)).toBeNull();
+  });
+
+  it('only the newest App-authored success status for exactly this PR counts', () => {
+    expect(isApprovalRecordedFor([ok], cfg, APP_BOT, 7)).toBe(true);
+    expect(isApprovalRecordedFor([ok], cfg, APP_BOT, 8)).toBe(false); // another PR
+    expect(isApprovalRecordedFor([{ ...ok, state: 'failure' }, ok], cfg, APP_BOT, 7)).toBe(false);
+    expect(isApprovalRecordedFor([{ ...ok, creatorLogin: 'owner' }], cfg, APP_BOT, 7)).toBe(false);
+    expect(isApprovalRecordedFor([{ ...ok, context: 'ci' }], cfg, APP_BOT, 7)).toBe(false);
+    expect(isApprovalRecordedFor([], cfg, APP_BOT, 7)).toBe(false);
+  });
+
+  it('statuses by other identities can neither grant nor mask an approval', () => {
+    const forged = { ...ok, creatorLogin: 'github-actions[bot]', state: 'failure' as const };
+    expect(latestApproval([forged, ok], cfg, APP_BOT)).toEqual({ state: 'success', record });
+    expect(latestApproval([forged], cfg, APP_BOT)).toBeNull();
   });
 });
 

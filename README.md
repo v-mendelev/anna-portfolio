@@ -94,7 +94,7 @@ deploy/timeweb/  # nginx-конфигурация для будущего Timewe
 - [ARCHITECTURE.md](ARCHITECTURE.md) — архитектура, точки интеграции, использование как шаблона
 - [TESTING.md](TESTING.md) — стратегия тестирования
 - [DEPLOYMENT.md](DEPLOYMENT.md) — GitHub Pages, Timeweb, ветки, rollback, защита main
-- [DELIVERY.md](DELIVERY.md) — автоматическая доставка одобренных изменений до демо (GitHub App, auto-merge, live smoke)
+- [DELIVERY.md](DELIVERY.md) — автоматическая доставка одобренных изменений до демо (GitHub App, merge по SHA после CI, live smoke)
 - [CLAUDE.md](CLAUDE.md) — правила разработки (для людей и ИИ-агентов)
 
 ## Использование как шаблона

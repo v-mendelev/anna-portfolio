@@ -9,13 +9,17 @@
 import { createSign } from 'node:crypto';
 import type {
   AutoMergeResult,
+  CheckRun,
+  CiApi,
   CommitInfo,
   CommitStatus,
   Comparison,
   GitHubApi,
+  IssueComment,
   MergeMethod,
   MergeResult,
   PullRequest,
+  WorkflowRun,
 } from './types.ts';
 
 export const API_URL = 'https://api.github.com';
@@ -199,6 +203,120 @@ function mapCommit(c: RestCommit): CommitInfo {
   return { sha: c.sha, treeSha: tree, parents: c.parents.map((p) => p.sha) };
 }
 
+interface RestComment {
+  id: number;
+  body: string | null;
+  issue_url: string;
+  author_association: string;
+  user: { login: string; type: string } | null;
+}
+
+export function mapComment(c: RestComment): IssueComment {
+  const issue = /\/issues\/(\d+)$/.exec(c.issue_url);
+  return {
+    id: c.id,
+    // 0 never matches a PR number: a comment we cannot place is no approval.
+    issueNumber: issue ? Number(issue[1]) : 0,
+    body: c.body ?? '',
+    author: { login: c.user?.login ?? 'ghost', type: c.user?.type ?? 'User' },
+    association: c.author_association,
+  };
+}
+
+interface RestRun {
+  id: number;
+  name: string | null;
+  path: string;
+  event: string;
+  status: string | null;
+  conclusion: string | null;
+  head_sha: string;
+  head_branch: string | null;
+  head_repository: { full_name: string } | null;
+  pull_requests: { number: number; base?: { ref?: string; repo?: { url?: string } } }[] | null;
+  check_suite_id: number;
+  created_at: string;
+}
+
+/** Maps a workflow run; keeps only PR associations whose base is this repository. */
+export function mapRun(r: RestRun, repository: string): WorkflowRun {
+  const repoUrl = `/repos/${repository}`.toLowerCase();
+  return {
+    id: r.id,
+    name: r.name ?? '',
+    path: r.path.replace(/@.*$/, ''),
+    event: r.event,
+    status: r.status ?? '',
+    conclusion: r.conclusion,
+    headSha: r.head_sha,
+    headBranch: r.head_branch ?? '',
+    headRepoFullName: r.head_repository?.full_name ?? '',
+    pullRequests: (r.pull_requests ?? [])
+      .filter((p) => (p.base?.repo?.url ?? '').toLowerCase().endsWith(repoUrl))
+      .map((p) => ({ number: p.number, baseRef: p.base?.ref ?? '' })),
+    checkSuiteId: r.check_suite_id,
+    createdAt: r.created_at,
+  };
+}
+
+interface RestCheckRun {
+  name: string;
+  status: string;
+  conclusion: string | null;
+  head_sha: string;
+  app: { slug: string } | null;
+  check_suite: { id: number } | null;
+}
+
+/**
+ * Read-only CI client on the workflow's GITHUB_TOKEN (actions: read,
+ * checks: read). The App needs no Actions/Checks permission for this.
+ */
+export function createCiReader(options: {
+  token: string;
+  repository: string;
+  fetch?: Fetch;
+}): CiApi {
+  const fetchImpl = options.fetch ?? fetch;
+  const auth = `Bearer ${options.token}`;
+  const repo = `/repos/${options.repository}`;
+  async function get<T>(path: string): Promise<T> {
+    const { status, data } = await call<T>(fetchImpl, auth, 'GET', path);
+    if (status !== 200) throw new GitHubError(status, `GET ${path}: ${status} ${apiMessage(data)}`);
+    return data;
+  }
+  return {
+    async listWorkflowRuns(workflowFile, headSha) {
+      const query = new URLSearchParams({
+        head_sha: headSha,
+        event: 'pull_request',
+        per_page: '50',
+      });
+      const data = await get<{ workflow_runs: RestRun[] }>(
+        `${repo}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?${query.toString()}`,
+      );
+      return data.workflow_runs.map((r) => mapRun(r, options.repository));
+    },
+    async getWorkflowRun(id) {
+      return mapRun(await get<RestRun>(`${repo}/actions/runs/${id}`), options.repository);
+    },
+    async listCheckRuns(checkSuiteId, name) {
+      const query = new URLSearchParams({ check_name: name, filter: 'latest', per_page: '100' });
+      const data = await get<{ check_runs: RestCheckRun[] }>(
+        `${repo}/check-suites/${checkSuiteId}/check-runs?${query.toString()}`,
+      );
+      return data.check_runs.map((c): CheckRun => ({
+        name: c.name,
+        status: c.status,
+        conclusion: c.conclusion,
+        appSlug: c.app?.slug ?? '',
+        checkSuiteId: c.check_suite?.id ?? -1,
+        headSha: c.head_sha,
+      }));
+    },
+  };
+}
+
 function encodeRef(ref: string): string {
   return ref.split('/').map(encodeURIComponent).join('/');
 }
@@ -363,6 +481,18 @@ export function createGitHubApi(options: {
       await rest('POST', `${repo}/issues/${number}/comments`, { body });
     },
 
+    async getIssueComment(id) {
+      const { status, data } = await call<RestComment>(
+        fetchImpl,
+        auth,
+        'GET',
+        `${repo}/issues/comments/${id}`,
+      );
+      if (status === 404) return null;
+      if (status !== 200) throw new GitHubError(status, `GET comment ${id}: ${status}`);
+      return mapComment(data);
+    },
+
     async getBranchSha(branch) {
       const { status, data } = await call<{ object?: { sha: string } }>(
         fetchImpl,
@@ -418,14 +548,23 @@ export function createGitHubApi(options: {
     },
 
     async listStatuses(sha) {
-      const data = await rest<
-        {
-          context: string;
-          state: CommitStatus['state'];
-          description: string | null;
-          creator: { login: string } | null;
-        }[]
-      >('GET', `${repo}/commits/${sha}/statuses?per_page=100`);
+      // All pages (newest first): a flood of other statuses must not push the
+      // App's record out of view. Too many → fail closed.
+      const data: {
+        context: string;
+        state: CommitStatus['state'];
+        description: string | null;
+        creator: { login: string } | null;
+      }[] = [];
+      for (let page = 1; ; page += 1) {
+        if (page > 10) throw new Error(`Too many commit statuses on ${sha}.`);
+        const batch = await rest<typeof data>(
+          'GET',
+          `${repo}/commits/${sha}/statuses?per_page=100&page=${page}`,
+        );
+        data.push(...batch);
+        if (batch.length < 100) break;
+      }
       return data.map((s) => ({
         context: s.context,
         state: s.state,

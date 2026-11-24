@@ -129,6 +129,26 @@ dev-инструмента (например, `subset-font`) и отдельно
 через `withBase()`, поэтому смена `base` не ломает CSS, JS, изображения и ссылки
 (проверяется E2E со специально нестандартным base `/base-path-check`).
 
+## Конвейер доставки
+
+`src/lib/delivery/` — без зависимостей, исполняется `node` в GitHub Actions
+(`scripts/delivery/run.ts`); подробности и модель доверия — [DELIVERY.md](DELIVERY.md).
+
+| Модуль            | Роль                                                                                                    |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `policy.ts`       | чистые правила: одобрение, запись `delivery/approval`, CI-вердикт, merge gate, promotion, sync, очистка |
+| `approve.ts`      | `issue_comment`: `/publish-approve <sha>` → запись одобрения → merge, если CI уже зелёный               |
+| `merge.ts`        | merge gate: перечитать PR, одобрение, комментарий, CI → merge с `sha` (squash)                          |
+| `workflow-run.ts` | `workflow_run` (CI завершён) → merge gate для PR этого прогона                                          |
+| `promote.ts`      | promotion `dev → main` и sync `main → dev`                                                              |
+| `cleanup.ts`      | удаление смёрженных конвейером `feature/*` веток                                                        |
+| `live.ts`         | live smoke после деплоя Pages                                                                           |
+| `rest.ts`         | GitHub REST/GraphQL, токен App, read-only CI-клиент (`GITHUB_TOKEN`)                                    |
+| `testing.ts`      | in-memory GitHub для тестов (не импортируется в рабочий код)                                            |
+
+Решения — в чистых функциях, ввод-вывод — через интерфейсы `GitHubApi`/`CiApi`,
+поэтому каждое правило безопасности покрыто unit-тестом.
+
 ## Точки интеграции
 
 Сайт статический, поэтому всё, что требует секретов, выполняется **на бэкенде**.

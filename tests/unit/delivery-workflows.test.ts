@@ -97,13 +97,25 @@ describe('delivery workflows', () => {
     expect(runScripts(read(name))).not.toContain('${{');
   });
 
-  it('approval comes only from issue_comment by write-access associations', () => {
+  it("approval starts only from the repository owner's own comment (fail-closed gate)", () => {
     const yaml = read('delivery-approve.yml');
     expect(block(yaml, 'on')).toMatch(/issue_comment:\n\s+types: \[created\]/);
-    expect(yaml).toContain(`startsWith(github.event.comment.body, '/publish-approve ')`);
-    expect(yaml).toContain(
-      `contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)`,
-    );
+    const gate = /approve:\n\s+name: [^\n]+\n\s+if: >-\n((?:\s{6}.+\n)+)/.exec(yaml)?.[1] ?? '';
+    expect(gate).toContain('vars.DELIVERY_REPOSITORY == github.repository');
+    expect(gate).toContain('github.event.issue.pull_request');
+    expect(gate).toContain(`startsWith(github.event.comment.body, '/publish-approve ')`);
+    expect(gate).toContain("github.event.comment.user.type == 'User'");
+    expect(gate).toContain('github.event.comment.user.login == github.repository_owner');
+    expect(gate).not.toContain('||'); // every condition is required
+  });
+
+  it('the gate diagnosis holds no secrets, environment, checkout or token permissions', () => {
+    const yaml = read('delivery-approve.yml');
+    const diagnose = yaml.slice(yaml.indexOf('\n  diagnose:'));
+    expect(diagnose.length).toBeGreaterThan(20);
+    expect(diagnose).toMatch(/permissions: \{\}/);
+    expect(diagnose).not.toMatch(/secrets\.|environment:|uses:|github\.token|comment\.body \}\}/);
+    expect(runScripts(diagnose)).not.toContain('${{');
   });
 
   it('the merge runs when CI completes for feature branches, from the default branch only', () => {
@@ -147,11 +159,16 @@ describe('delivery workflows', () => {
     expect(yaml).toMatch(/concurrency:\n\s+group: delivery-promote\n\s+cancel-in-progress: false/);
   });
 
-  it.each(DELIVERY)('%s: runs only from the default branch (defence in depth)', (name) => {
-    expect(read(name)).toContain(
-      "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
-    );
-  });
+  // issue_comment always runs the default branch's file, so delivery-approve.yml
+  // relies on that plus the main-only `delivery` environment.
+  it.each(['delivery-merge.yml', 'delivery-promote.yml'])(
+    '%s: runs only from the default branch (defence in depth)',
+    (name) => {
+      expect(read(name)).toContain(
+        "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)",
+      );
+    },
+  );
 
   it.each(DELIVERY)(
     '%s: concurrency is job-level, so runs filtered out by `if:` never occupy the queue',

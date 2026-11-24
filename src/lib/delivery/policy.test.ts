@@ -65,16 +65,33 @@ describe('branches', () => {
 });
 
 describe('approvers', () => {
-  it('only listed humans with write association may approve', () => {
-    expect(commenterMayApprove({ login: 'Owner', type: 'User', association: 'OWNER' }, cfg)).toBe(
-      true,
-    );
+  it('the repository owner may approve, identified by login whatever the association says', () => {
+    for (const association of ['OWNER', 'CONTRIBUTOR', 'NONE', ''])
+      expect(commenterMayApprove({ login: 'Owner', type: 'User', association }, cfg)).toBe(true);
+    // A bot account can never approve, even under the owner's name.
     expect(
-      commenterMayApprove({ login: 'owner', type: 'User', association: 'CONTRIBUTOR' }, cfg),
+      commenterMayApprove({ login: 'owner[bot]', type: 'Bot', association: 'OWNER' }, cfg),
+    ).toBe(false);
+  });
+
+  it('anyone else needs to be on the approver list AND have write association', () => {
+    const two = loadDeliveryConfig({
+      GITHUB_REPOSITORY: REPO,
+      DELIVERY_REPOSITORY: REPO,
+      DELIVERY_APPROVERS: 'owner, helper',
+    });
+    expect(
+      commenterMayApprove({ login: 'helper', type: 'User', association: 'COLLABORATOR' }, two),
+    ).toBe(true);
+    expect(
+      commenterMayApprove({ login: 'helper', type: 'User', association: 'CONTRIBUTOR' }, two),
     ).toBe(false);
     expect(
       commenterMayApprove({ login: 'other', type: 'User', association: 'COLLABORATOR' }, cfg),
     ).toBe(false);
+    expect(commenterMayApprove({ login: 'other', type: 'User', association: 'OWNER' }, cfg)).toBe(
+      false,
+    );
   });
 });
 

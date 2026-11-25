@@ -60,12 +60,25 @@ const SANS_BOLD = [
 const fallbacks = {
   onest: [
     {
+      // Regular text (SKLEYKA body). Windows (fractional advances, Arial) and
+      // Linux CI (whole-pixel advances, Liberation Sans) differ by ~3.7% here;
+      // size-adjust sits midway: fallback/web width 0.982 (Win) / 1.018 (Linux).
       for: 'Onest Variable',
       local: SANS_FALLBACKS,
-      weight: '100 549',
-      sizeAdjust: '104.54%',
-      ascentOverride: '92.79%',
-      descentOverride: '29.18%',
+      weight: '100 449',
+      sizeAdjust: '101.29%',
+      ascentOverride: '95.77%',
+      descentOverride: '30.12%',
+      lineGapOverride: '0%',
+    },
+    {
+      // Medium text (KADR body): midway again, 0.986 (Win) / 1.015 (Linux).
+      for: 'Onest Variable',
+      local: SANS_FALLBACKS,
+      weight: '450 549',
+      sizeAdjust: '102.95%',
+      ascentOverride: '94.22%',
+      descentOverride: '29.63%',
       lineGapOverride: '0%',
     },
     {

@@ -25,6 +25,12 @@ export interface WebFontFace {
   style: 'normal' | 'italic';
   /** Variable weight range, e.g. "300 700". */
   weight: string;
+  /**
+   * Width range for fonts with a `wdth` axis, as CSS font-stretch (valid
+   * 50%–200%, e.g. "75% 125%"). Outside that range, set the axis with
+   * font-variation-settings instead.
+   */
+  stretch?: string;
   /** Built asset URL of the WOFF2 file for each subset. */
   files: Partial<Record<Subset, string>>;
 }
@@ -45,6 +51,15 @@ export interface FallbackFace {
    * them as-is instead of slanting a roman (which is wider than an italic).
    */
   style?: 'italic';
+  /**
+   * Named variant of the fallback family, e.g. "Condensed" declares
+   * "<for> Condensed Fallback". Use it for text set at an extreme width with
+   * `font-variation-settings: 'wdth' …` (CSS font-stretch only covers 50–200%,
+   * so @font-face cannot pick a fallback by width). A fallback cannot condense,
+   * so a condensed variant gets a smaller size-adjust: with an explicit
+   * line-height the line box keeps its height and the text keeps its breaks.
+   */
+  variant?: string;
   sizeAdjust: string;
   ascentOverride: string;
   descentOverride: string;
@@ -66,8 +81,8 @@ export const SERIF_FALLBACKS = [
 ] as const;
 export const SANS_FALLBACKS = ['Arial', 'Liberation Sans', 'Arimo', 'Helvetica', 'Roboto'] as const;
 
-export function fallbackFamily(family: string): string {
-  return `${family} Fallback`;
+export function fallbackFamily(family: string, variant?: string): string {
+  return variant ? `${family} ${variant} Fallback` : `${family} Fallback`;
 }
 
 /** CSS font-family value: web font, its metric-matched fallback, generic family. */
@@ -86,6 +101,7 @@ export function fontFaceCss(
       if (!url) continue;
       rules.push(
         `@font-face{font-family:'${face.family}';font-style:${face.style};font-weight:${face.weight};` +
+          (face.stretch ? `font-stretch:${face.stretch};` : '') +
           `font-display:swap;src:url(${JSON.stringify(url)}) format('woff2');` +
           `unicode-range:${SUBSET_RANGES[subset]}}`,
       );
@@ -94,7 +110,7 @@ export function fontFaceCss(
   for (const fb of fallbacks) {
     const src = fb.local.map((name) => `local(${JSON.stringify(name)})`).join(',');
     rules.push(
-      `@font-face{font-family:'${fallbackFamily(fb.for)}';src:${src};` +
+      `@font-face{font-family:'${fallbackFamily(fb.for, fb.variant)}';src:${src};` +
         (fb.weight ? `font-weight:${fb.weight};` : '') +
         (fb.style ? `font-style:${fb.style};` : '') +
         `size-adjust:${fb.sizeAdjust};ascent-override:${fb.ascentOverride};` +

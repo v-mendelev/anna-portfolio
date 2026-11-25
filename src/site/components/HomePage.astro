@@ -1,0 +1,36 @@
+---
+/**
+ * Anna Shelenkova's site — one page in the KADR design.
+ * Sections: hero → showreel → work → services → about → contact.
+ * Content lives in src/site/content.ts; these components only lay it out.
+ */
+import About from './About.astro';
+import Contact from './Contact.astro';
+import Hero from './Hero.astro';
+import Services from './Services.astro';
+import Showreel from './Showreel.astro';
+import SiteFooter from './SiteFooter.astro';
+import SiteHeader from './SiteHeader.astro';
+import Work from './Work.astro';
+---
+
+<div class="kadr min-h-dvh">
+  <SiteHeader />
+  <main id="main">
+    <Hero />
+    <Showreel />
+    <Work />
+    <Services />
+    <About />
+    <Contact />
+  </main>
+  <SiteFooter />
+</div>
+
+<script>
+  import { initFilters } from '../../lib/ui/filter';
+  import { initMenus } from '../../lib/ui/menu';
+
+  initMenus();
+  initFilters();
+</script>

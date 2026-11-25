@@ -439,7 +439,11 @@ export function createGitHubApi(options: {
       );
       if (errors.length === 0) return 'enabled';
       const text = errors.join(' ');
-      if (/clean status|is in (a )?clean state/i.test(text)) return 'clean';
+      // "clean" / "unstable": mergeable right now (required checks satisfied; "unstable"
+      // = some non-required check failed or is pending), so GitHub refuses auto-merge.
+      // The caller merges directly with the SHA guard; rulesets still apply to that merge.
+      if (/(clean|unstable) status|is in (a |an )?(clean|unstable) state/i.test(text))
+        return 'clean';
       if (/already (in auto[- ]?merge|enabled)/i.test(text)) return 'enabled';
       if (/expected head|head (oid|sha|ref).*(match|changed)|has been modified/i.test(text))
         return 'head-moved';

@@ -1,0 +1,50 @@
+---
+/**
+ * Contact: the invitation in a large viewfinder frame, then the channels.
+ * A channel becomes a link only once a real href is in content; until then
+ * it shows a placeholder label (no invented addresses, no dead buttons).
+ */
+import PlaceholderTag from '../../components/ui/PlaceholderTag.astro';
+import { usableContacts } from '../../lib/portfolio';
+import { content } from '../content';
+
+const { contacts } = content;
+const primary = usableContacts(contacts)[0];
+---
+
+<section id="contact" class="border-t-2 border-volt">
+  <div class="kadr-wrap pt-16 pb-10 lg:pt-24">
+    <div class="relative px-5 py-10 sm:px-10 lg:py-16">
+      <span class="vf vf--lg" aria-hidden="true"></span>
+      {/* Two lines on phones and tablets by design, not by chance: a near-full
+          line would wrap differently with the fallback font and the web font. */}
+      <h2 class="kadr-h2 kadr-h2--xl">
+        <span class="max-lg:block">Обсудить</span> проект
+      </h2>
+      <p class="mt-6 max-w-[24em] text-xl leading-snug font-semibold">
+        Напишите, что нужно снять, смонтировать или озвучить. Отвечу и предложу план.
+      </p>
+      {primary?.href && (
+        <a href={primary.href} class="kadr-btn kadr-btn--solid mt-8">
+          Написать: {primary.label}
+        </a>
+      )}
+    </div>
+    <dl class="mt-12 grid gap-x-6 sm:grid-cols-2 xl:grid-cols-4" data-contacts>
+      {contacts.map((c) => (
+        <div class="border-t-2 border-volt py-4">
+          <dt class="text-2xl font-black tracking-[-0.02em]">{c.label}</dt>
+          <dd class="mt-1 text-sm font-semibold">
+            {c.href ? (
+              <a href={c.href} class="kadr-tap underline underline-offset-4">
+                {c.value ?? c.label}
+              </a>
+            ) : (
+              <PlaceholderTag detail="контакт появится" />
+            )}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</section>

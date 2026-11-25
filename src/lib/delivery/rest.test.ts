@@ -141,10 +141,12 @@ describe('createGitHubApi', () => {
     expect((await api.getPullRequest(4)).head.repoFullName).toBe('');
   });
 
-  it('maps auto-merge GraphQL answers: enabled, clean status, unexpected error', async () => {
+  it('maps auto-merge GraphQL answers: enabled, clean/unstable status, unexpected error', async () => {
     const answers = [
       { data: {} },
       { errors: [{ message: 'Pull request Pull request is in clean status' }] },
+      // PR #14: a failed non-required check (an earlier promote run) made the sync PR "unstable".
+      { errors: [{ message: 'Pull request Pull request is in unstable status' }] },
       { errors: [{ message: 'nope' }] },
     ];
     let i = 0;
@@ -154,6 +156,7 @@ describe('createGitHubApi', () => {
     const p = { nodeId: 'PR_3' } as Parameters<typeof api.enableAutoMerge>[0];
     expect(await api.enableAutoMerge(p, 'SQUASH', 'a'.repeat(40))).toBe('enabled');
     expect(await api.enableAutoMerge(p, 'SQUASH', 'a'.repeat(40))).toBe('clean');
+    expect(await api.enableAutoMerge(p, 'MERGE', 'a'.repeat(40))).toBe('clean');
     await expect(api.enableAutoMerge(p, 'SQUASH', 'a'.repeat(40))).rejects.toThrow(/nope/);
   });
 

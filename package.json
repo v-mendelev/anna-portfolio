@@ -28,16 +28,13 @@
     "test:visual:update": "playwright test --project=visual --update-snapshots",
     "test:e2e:install": "playwright install chromium webkit",
     "fonts:metrics": "node scripts/font-fallback-metrics.mjs",
+    "brand:images": "node scripts/brand-images.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build",
     "verify": "pnpm check && pnpm test:e2e"
   },
   "dependencies": {
-    "@fontsource-variable/commissioner": "5.3.0",
-    "@fontsource-variable/cormorant": "5.3.0",
-    "@fontsource-variable/golos-text": "5.3.0",
-    "@fontsource-variable/literata": "5.3.0",
-    "@fontsource-variable/unbounded": "5.3.0",
+    "@fontsource-variable/onest": "5.3.1",
     "@tailwindcss/vite": "^4.3.5",
     "astro": "^7.4.13",
     "tailwindcss": "^4.3.5"

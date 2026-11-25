@@ -1,0 +1,68 @@
+---
+/** Sticky header: name, section links (desktop) and a full-screen menu (phones). */
+import Icon from '../../components/ui/Icon.astro';
+import { SECTIONS, content } from '../content';
+
+const { person } = content;
+---
+
+<header class="sticky top-0 z-40 border-b-2 border-volt bg-paper" data-site-header>
+  <div class="kadr-wrap flex h-14 items-center justify-between gap-6">
+    <a href="#top" class="kadr-tap kadr-brand text-base font-extrabold tracking-[-0.02em]">
+      {person.name}
+    </a>
+    <nav aria-label="Разделы" class="hidden items-center gap-1 lg:flex">
+      {SECTIONS.map((s) => (
+        <a href={`#${s.id}`} class="kadr-link">
+          {s.label}
+        </a>
+      ))}
+    </nav>
+    <button
+      type="button"
+      class="kadr-tap gap-2 px-1 text-sm font-bold lg:hidden"
+      data-menu-toggle
+      aria-controls="site-menu"
+      aria-expanded="false"
+    >
+      <Icon name="menu" class="size-5" />
+      Меню
+    </button>
+  </div>
+</header>
+
+<div
+  id="site-menu"
+  class="fixed inset-0 z-50 overflow-y-auto bg-paper"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Меню"
+  data-menu-modal
+  hidden
+>
+  <div class="kadr-wrap flex h-14 items-center justify-between border-b-2 border-volt">
+    <span class="kadr-brand font-extrabold">{person.name}</span>
+    <button
+      type="button"
+      class="-mr-2.5 grid size-11 place-items-center"
+      data-menu-close
+      aria-label="Закрыть меню"
+    >
+      <Icon name="close" />
+    </button>
+  </div>
+  <nav aria-label="Меню" class="kadr-wrap py-6">
+    <ul>
+      {SECTIONS.map((s) => (
+        <li class="border-b border-volt-tint">
+          <a
+            href={`#${s.id}`}
+            class="flex min-h-14 items-center text-[clamp(2rem,9vw,3.5rem)] leading-none font-black tracking-[-0.04em] text-volt"
+          >
+            {s.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</div>

@@ -13,30 +13,13 @@ interface FontPage {
   preloads: number;
 }
 
+// Budget: actual payload (Onest Cyrillic + Latin, ~49 KB) plus ~20% headroom.
 const PAGES: Record<string, FontPage> = {
-  cinematic: {
-    path: 'design/cinematic/',
-    families: /^(cormorant|commissioner)-/,
-    budgetKb: 130,
+  home: {
+    path: '',
+    families: /^onest-/,
+    budgetKb: 60,
     preloads: 1,
-  },
-  editorial: {
-    path: 'design/editorial/',
-    families: /^(literata|golos-text)-/,
-    budgetKb: 150,
-    preloads: 1,
-  },
-  creative: {
-    path: 'design/creative/',
-    families: /^(unbounded|golos-text)-/,
-    budgetKb: 150,
-    preloads: 1,
-  },
-  chooser: {
-    path: 'design/',
-    families: /^(cormorant|literata|unbounded)-latin-/,
-    budgetKb: 150,
-    preloads: 0,
   },
 };
 

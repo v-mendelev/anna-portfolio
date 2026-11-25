@@ -91,6 +91,34 @@ describe('fontFaceCss', () => {
     expect(italic).toContain('local("Times New Roman Italic")');
   });
 
+  it('declares the width range of a variable-width face', () => {
+    const rules = fontFaceCss([{ ...face, stretch: '75% 125%', files: { cyrillic: '/c.woff2' } }]);
+    expect(rules).toContain('font-stretch:75% 125%');
+    // Faces without a width axis do not declare one.
+    expect(fontFaceCss([face])).not.toContain('font-stretch');
+  });
+
+  it('declares named fallback variants for extreme widths', () => {
+    const fb = {
+      for: 'Test Variable',
+      local: ['Arial Bold'],
+      ascentOverride: '90%',
+      descentOverride: '20%',
+      lineGapOverride: '0%',
+    };
+    const rules = fontFaceCss(
+      [],
+      [
+        { ...fb, variant: 'Condensed', sizeAdjust: '42%' },
+        { ...fb, sizeAdjust: '104%' },
+      ],
+    ).split('\n');
+    expect(rules[0]).toContain("font-family:'Test Variable Condensed Fallback'");
+    expect(rules[0]).toContain('size-adjust:42%');
+    expect(rules[1]).toContain("font-family:'Test Variable Fallback'");
+    expect(fallbackFamily('Test Variable', 'Wide')).toBe('Test Variable Wide Fallback');
+  });
+
   it('never references extended or unrelated subsets', () => {
     expect(Object.keys(SUBSET_RANGES)).toEqual(['cyrillic', 'latin']);
   });

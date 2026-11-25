@@ -13,38 +13,13 @@ interface FontPage {
   preloads: number;
 }
 
-// Budgets: actual payload (Cyrillic + Latin files) plus ~20% headroom.
+// Budget: actual payload (Onest Cyrillic + Latin, ~49 KB) plus ~20% headroom.
 const PAGES: Record<string, FontPage> = {
-  // KADR: Onest only (~49 KB).
-  cinematic: {
-    path: 'design/cinematic/',
+  home: {
+    path: '',
     families: /^onest-/,
     budgetKb: 60,
     preloads: 1,
-  },
-  // SKLEYKA: Alumni Sans + Onest (~82 KB).
-  editorial: {
-    path: 'design/editorial/',
-    families: /^(alumni-sans|onest)-/,
-    budgetKb: 100,
-    preloads: 1,
-  },
-  // RAPID: Noto Sans Display, weight + width axes (~105 KB).
-  creative: {
-    path: 'design/creative/',
-    families: /^noto-sans-display-cyrillic-wdth|^noto-sans-display-latin-wdth/,
-    budgetKb: 125,
-    preloads: 1,
-  },
-  // Chooser previews each concept's face on its Cyrillic name only. Chromium
-  // fetches just the Cyrillic files (~64 KB); WebKit also fetches the Latin file
-  // of each family, because it takes line metrics from the face that covers the
-  // space (U+0020) even when the text has none (~187 KB in total).
-  chooser: {
-    path: 'design/',
-    families: /^(onest|alumni-sans|noto-sans-display)-(cyrillic|latin)-/,
-    budgetKb: 200,
-    preloads: 0,
   },
 };
 

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { CONCEPT_SECTIONS, DEMO_SLUGS } from './routes';
+import { SITE_SECTIONS } from './routes';
 
 /**
  * Phone-sized regressions found in the mobile design review (Galaxy S25 class,
@@ -8,8 +8,8 @@ import { CONCEPT_SECTIONS, DEMO_SLUGS } from './routes';
  */
 const PHONE = { width: 360, height: 780 };
 
-async function openConcept(page: Page, slug: string) {
-  await page.goto(`design/${slug}/`);
+async function openHome(page: Page) {
+  await page.goto('');
   // Jumps must land instantly so geometry is measured where the user ends up.
   await page.addStyleTag({ content: 'html{scroll-behavior:auto!important}' });
   await page.evaluate(() => document.fonts.ready);
@@ -28,301 +28,318 @@ const COLOR_HELPERS = `
   };
 `;
 
-for (const slug of DEMO_SLUGS) {
-  test.describe(`@smoke ${slug} on phones`, () => {
-    test.use({ viewport: PHONE, hasTouch: true });
+test.describe('@smoke home on phones', () => {
+  test.use({ viewport: PHONE, hasTouch: true });
 
-    test('the header is opaque wherever content scrolls beneath it', async ({ page }) => {
-      await openConcept(page, slug);
-      await page.addScriptTag({ content: COLOR_HELPERS });
-      for (const fraction of [0.25, 0.5, 0.75, 1]) {
-        await page.evaluate(
-          (f) => window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * f),
-          fraction,
-        );
+  test('the header is opaque wherever content scrolls beneath it', async ({ page }) => {
+    await openHome(page);
+    await page.addScriptTag({ content: COLOR_HELPERS });
+    for (const fraction of [0.25, 0.5, 0.75, 1]) {
+      await page.evaluate(
+        (f) => window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * f),
+        fraction,
+      );
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => {
+              const header = document.querySelector('[data-site-header]');
+              if (!header) return 0;
+              const rgba = (window as unknown as { __rgba: (c: string) => { a: number } }).__rgba;
+              return rgba(getComputedStyle(header).backgroundColor).a;
+            }),
+          { message: `header backdrop at ${fraction * 100}% of the page` },
+        )
+        .toBeGreaterThanOrEqual(0.9);
+    }
+  });
+
+  test('menu links land each section heading below the header', async ({ page }) => {
+    for (const width of [320, 360, 430]) {
+      await page.setViewportSize({ width, height: PHONE.height });
+      await openHome(page);
+      const toggle = page.locator('[data-menu-toggle]');
+      const panel = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
+      for (const id of SITE_SECTIONS.filter((s) => s !== 'top')) {
+        await toggle.click();
+        await panel.locator(`a[href="#${id}"]`).click();
+        await expect(panel).toBeHidden();
         await expect
           .poll(
             () =>
-              page.evaluate(() => {
+              page.evaluate((target) => {
                 const header = document.querySelector('[data-site-header]');
-                if (!header) return 0;
-                const rgba = (window as unknown as { __rgba: (c: string) => { a: number } }).__rgba;
-                return rgba(getComputedStyle(header).backgroundColor).a;
-              }),
-            { message: `header backdrop at ${fraction * 100}% of the page` },
+                const heading = document.querySelector(`#${target} h2`);
+                if (!header || !heading) return -999;
+                const atEnd =
+                  Math.ceil(scrollY + innerHeight) >= document.documentElement.scrollHeight - 1;
+                if (atEnd) return 0;
+                return heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom;
+              }, id),
+            { message: `#${id} heading vs header at ${width}px` },
           )
-          .toBeGreaterThanOrEqual(0.9);
+          .toBeGreaterThanOrEqual(0);
       }
-    });
+    }
+  });
 
-    test('the timeline header docks in exactly once on the way down', async ({ page }) => {
-      test.skip(slug !== 'creative', 'Only RAPID changes its header: the timeline docks in');
-      await openConcept(page, slug);
-      await page.addStyleTag({ content: '*{transition:none!important}' });
-      const result = await page.evaluate(async () => {
-        const header = document.querySelector<HTMLElement>('[data-site-header]');
-        if (!header) return { atTop: true, changes: -1 };
-        const frame = () =>
-          new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        window.scrollTo(0, 0);
-        await frame();
-        const atTop = header.hasAttribute('data-scrolled');
-        // Scroll 1px at a time through the band where the header changes.
-        const anchor = header.dataset.solidAfter
-          ? document.querySelector<HTMLElement>(header.dataset.solidAfter)
-          : null;
-        const end = anchor ? anchor.offsetTop + anchor.offsetHeight : 0;
-        const from = Math.max(0, end - 110);
-        let prev: boolean | null = null;
-        let changes = 0;
-        for (let y = from; y <= from + 70; y++) {
-          window.scrollTo(0, y);
-          await frame();
-          const now = header.hasAttribute('data-scrolled');
-          if (prev !== null && now !== prev) changes++;
-          prev = now;
-        }
-        return { atTop, changes };
-      });
-      expect(result.atTop, 'timeline not docked at the top of the page').toBe(false);
-      expect(result.changes, 'state flips while scrolling one way').toBe(1);
-    });
+  test('every placeholder project is visibly marked as invented', async ({ page }) => {
+    await openHome(page);
+    const note = page.locator('#work [data-demo-note]');
+    await expect(note).toBeVisible();
+    await expect(note).toContainText('вымышлены');
+    await expect(note).toContainText('не работы Анны');
+    const projects = page.locator('#work [data-category]');
+    const count = await projects.count();
+    expect(count).toBe(6);
+    for (let i = 0; i < count; i++) {
+      const label = projects.nth(i).locator('[data-placeholder]:visible');
+      await expect(label.first()).toBeVisible();
+      await expect(label.first()).toContainText('вымышленный проект');
+    }
+  });
 
-    test('menu links land each section heading below the header', async ({ page }) => {
-      for (const width of [320, 360, 430]) {
-        await page.setViewportSize({ width, height: PHONE.height });
-        await openConcept(page, slug);
-        const toggle = page.locator('[data-menu-toggle]');
-        const panel = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
-        for (const id of CONCEPT_SECTIONS.filter((s) => s !== 'top')) {
-          await toggle.click();
-          await panel.locator(`a[href="#${id}"]`).click();
-          await expect(panel).toBeHidden();
-          await expect
-            .poll(
-              () =>
-                page.evaluate((target) => {
-                  const header = document.querySelector('[data-site-header]');
-                  const heading = document.querySelector(`#${target} h2`);
-                  if (!header || !heading) return -999;
-                  const atEnd =
-                    Math.ceil(scrollY + innerHeight) >= document.documentElement.scrollHeight - 1;
-                  if (atEnd) return 0;
-                  return (
-                    heading.getBoundingClientRect().top - header.getBoundingClientRect().bottom
-                  );
-                }, id),
-              { message: `#${id} heading vs header at ${width}px` },
-            )
-            .toBeGreaterThanOrEqual(0);
-        }
-      }
-    });
-
-    test('every demo project is visibly marked as invented', async ({ page }) => {
-      await openConcept(page, slug);
-      const note = page.locator('#work [data-demo-note]');
-      await expect(note).toBeVisible();
-      await expect(note).toContainText('вымышлены');
-      await expect(note).toContainText('не работы Анны');
-      const projects = page.locator('#work [data-category]');
-      const count = await projects.count();
-      expect(count).toBe(6);
-      for (let i = 0; i < count; i++) {
-        const label = projects.nth(i).locator('[data-placeholder]:visible');
-        await expect(label.first()).toBeVisible();
-        await expect(label.first()).toContainText('вымышленный проект');
-      }
-    });
-
-    test('touch targets are at least 44×44 px, including menu and showreel', async ({ page }) => {
-      await openConcept(page, slug);
-      const tooSmall = () =>
-        page.evaluate(() => {
-          const out: string[] = [];
-          const targets = document.querySelectorAll<HTMLElement>(
-            'a[href], button, summary, [role="button"]',
-          );
-          for (const el of targets) {
-            if (!el.checkVisibility()) continue;
-            const box = el.getBoundingClientRect();
-            // Visually hidden until focused (skip link): not a touch target.
-            if (el.classList.contains('sr-only') || box.width <= 1 || box.height <= 1) continue;
-            if (box.width < 43.5 || box.height < 43.5) {
-              const name = (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();
-              out.push(
-                `${el.tagName.toLowerCase()} "${name.slice(0, 30)}" ${Math.round(box.width)}×${Math.round(box.height)}`,
-              );
-            }
-          }
-          return out;
-        });
-      expect(await tooSmall()).toEqual([]);
-      await page.locator('[data-menu-toggle]').click();
-      await expect(page.locator('[data-menu-toggle]')).toHaveAttribute('aria-expanded', 'true');
-      expect(await tooSmall()).toEqual([]);
-      await page.keyboard.press('Escape');
-      await page.getByTestId('showreel-open').click();
-      await expect(page.locator('dialog[open]')).toBeVisible();
-      expect(await tooSmall()).toEqual([]);
-    });
-
-    test('text meets WCAG AA contrast against its background', async ({ page }) => {
-      await openConcept(page, slug);
-      await page.addScriptTag({ content: COLOR_HELPERS });
-      const failures = await page.evaluate(() => {
-        interface RGBA {
-          r: number;
-          g: number;
-          b: number;
-          a: number;
-        }
-        const rgba = (window as unknown as { __rgba: (c: string) => RGBA }).__rgba;
-        const lum = ({ r, g, b }: RGBA) => {
-          const f = (v: number) => {
-            const s = v / 255;
-            return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-          };
-          return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
-        };
-        const over = (top: RGBA, bottom: RGBA): RGBA => ({
-          r: top.r * top.a + bottom.r * (1 - top.a),
-          g: top.g * top.a + bottom.g * (1 - top.a),
-          b: top.b * top.a + bottom.b * (1 - top.a),
-          a: 1,
-        });
-        /** Solid backdrop behind an element, or null over images/gradients. */
-        const backdrop = (el: Element): RGBA | null => {
-          const layers: RGBA[] = [];
-          for (let node: Element | null = el; node; node = node.parentElement) {
-            const style = getComputedStyle(node);
-            if (style.backgroundImage !== 'none') return null;
-            const c = rgba(style.backgroundColor);
-            if (c.a > 0) layers.push(c);
-            if (c.a >= 1) break;
-          }
-          let base: RGBA = { r: 255, g: 255, b: 255, a: 1 };
-          for (const layer of layers.reverse()) base = over(layer, base);
-          return base;
-        };
+  test('touch targets are at least 44×44 px, including the open menu', async ({ page }) => {
+    await openHome(page);
+    const tooSmall = () =>
+      page.evaluate(() => {
         const out: string[] = [];
-        for (const el of document.querySelectorAll<HTMLElement>('body *')) {
-          const hasText = [...el.childNodes].some(
-            (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim(),
-          );
-          if (!hasText || !el.checkVisibility({ opacityProperty: true })) continue;
-          if (el.closest('[data-footage]') && !el.closest('[data-placeholder]')) continue;
-          // Decorative copies hidden from assistive tech (motion trails, the
-          // shifted half of a cut word) are not text content for WCAG 1.4.3.
-          if (el.closest('[aria-hidden="true"]')) continue;
-          // Text laid over a footage frame (a sibling, e.g. subtitles or the hero
-          // title) sits on painted media: not measurable here, so skip it rather
-          // than measuring it against the section colour.
+        const targets = document.querySelectorAll<HTMLElement>(
+          'a[href], button, summary, [role="button"]',
+        );
+        for (const el of targets) {
+          if (!el.checkVisibility()) continue;
           const box = el.getBoundingClientRect();
-          const overMedia = [...document.querySelectorAll('[data-footage]')].some((f) => {
-            if (f.contains(el)) return false;
-            const r = f.getBoundingClientRect();
-            return (
-              box.left < r.right && box.right > r.left && box.top < r.bottom && box.bottom > r.top
+          // Visually hidden until focused (skip link): not a touch target.
+          if (el.classList.contains('sr-only') || box.width <= 1 || box.height <= 1) continue;
+          if (box.width < 43.5 || box.height < 43.5) {
+            const name = (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();
+            out.push(
+              `${el.tagName.toLowerCase()} "${name.slice(0, 30)}" ${Math.round(box.width)}×${Math.round(box.height)}`,
             );
-          });
-          if (overMedia) continue;
-          const bg = backdrop(el);
-          if (!bg) continue;
-          const style = getComputedStyle(el);
-          const fg = over(rgba(style.color), bg);
-          const [hi, lo] = [lum(fg), lum(bg)].sort((a, b) => b - a) as [number, number];
-          const ratio = (hi + 0.05) / (lo + 0.05);
-          const size = parseFloat(style.fontSize);
-          const large = size >= 24 || (size >= 18.66 && Number(style.fontWeight) >= 700);
-          const min = large ? 3 : 4.5;
-          if (ratio < min) {
-            out.push(`"${el.textContent?.trim().slice(0, 40)}" ${ratio.toFixed(2)} < ${min}`);
           }
         }
         return out;
       });
-      expect(failures).toEqual([]);
-    });
+    expect(await tooSmall()).toEqual([]);
+    await page.locator('[data-menu-toggle]').click();
+    await expect(page.locator('[data-menu-toggle]')).toHaveAttribute('aria-expanded', 'true');
+    expect(await tooSmall()).toEqual([]);
+    await page.keyboard.press('Escape');
   });
-}
 
-/** Positioning and per-concept refinements from the final review. */
-for (const slug of DEMO_SLUGS) {
-  test.describe(`@smoke ${slug} positioning and first screen`, () => {
-    test.use({ viewport: PHONE, hasTouch: true });
-
-    test('hero presents a videographer; travel is a new direction in its own section', async ({
-      page,
-    }) => {
-      await openConcept(page, slug);
-      const hero = page.locator('#top');
-      await expect(hero).toContainText('Снимаю, монтирую и озвучиваю');
-      await expect(hero).not.toContainText(/туристическ/i);
-      await expect(page.locator('#travel h2')).toContainText('новое направление');
-      await expect(page.locator('#travel')).toContainText(
-        'Готовых туристических проектов пока нет',
-      );
-    });
-
-    test('no heading repeats the one right before it', async ({ page }) => {
-      await openConcept(page, slug);
-      const repeats = await page.evaluate(() => {
-        const norm = (s: string | null) =>
-          (s ?? '').replace(/­/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
-        const heads = [...document.querySelectorAll('main h1, main h2, main h3, main dt')]
-          .filter((h) => h.checkVisibility())
-          .map((h) => norm(h.textContent));
-        return heads.filter((h, i) => i > 0 && h === heads[i - 1]);
+  test('text meets WCAG AA contrast against its background', async ({ page }) => {
+    await openHome(page);
+    await page.addScriptTag({ content: COLOR_HELPERS });
+    const failures = await page.evaluate(() => {
+      interface RGBA {
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+      }
+      const rgba = (window as unknown as { __rgba: (c: string) => RGBA }).__rgba;
+      const lum = ({ r, g, b }: RGBA) => {
+        const f = (v: number) => {
+          const s = v / 255;
+          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const over = (top: RGBA, bottom: RGBA): RGBA => ({
+        r: top.r * top.a + bottom.r * (1 - top.a),
+        g: top.g * top.a + bottom.g * (1 - top.a),
+        b: top.b * top.a + bottom.b * (1 - top.a),
+        a: 1,
       });
-      expect(repeats).toEqual([]);
+      /** Solid backdrop behind an element, or null over images/gradients. */
+      const backdrop = (el: Element): RGBA | null => {
+        const layers: RGBA[] = [];
+        for (let node: Element | null = el; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          if (style.backgroundImage !== 'none') return null;
+          const c = rgba(style.backgroundColor);
+          if (c.a > 0) layers.push(c);
+          if (c.a >= 1) break;
+        }
+        let base: RGBA = { r: 255, g: 255, b: 255, a: 1 };
+        for (const layer of layers.reverse()) base = over(layer, base);
+        return base;
+      };
+      const out: string[] = [];
+      for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+        const hasText = [...el.childNodes].some(
+          (n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim(),
+        );
+        if (!hasText || !el.checkVisibility({ opacityProperty: true })) continue;
+        if (el.closest('[data-footage]') && !el.closest('[data-placeholder]')) continue;
+        // Decorative copies hidden from assistive tech (motion trails, the
+        // shifted half of a cut word) are not text content for WCAG 1.4.3.
+        if (el.closest('[aria-hidden="true"]')) continue;
+        // Text laid over a footage frame (a sibling, e.g. subtitles or the hero
+        // title) sits on painted media: not measurable here, so skip it rather
+        // than measuring it against the section colour.
+        const box = el.getBoundingClientRect();
+        const overMedia = [...document.querySelectorAll('[data-footage]')].some((f) => {
+          if (f.contains(el)) return false;
+          const r = f.getBoundingClientRect();
+          return (
+            box.left < r.right && box.right > r.left && box.top < r.bottom && box.bottom > r.top
+          );
+        });
+        if (overMedia) continue;
+        const bg = backdrop(el);
+        if (!bg) continue;
+        const style = getComputedStyle(el);
+        const fg = over(rgba(style.color), bg);
+        const [hi, lo] = [lum(fg), lum(bg)].sort((a, b) => b - a) as [number, number];
+        const ratio = (hi + 0.05) / (lo + 0.05);
+        const size = parseFloat(style.fontSize);
+        const large = size >= 24 || (size >= 18.66 && Number(style.fontWeight) >= 700);
+        const min = large ? 3 : 4.5;
+        if (ratio < min) {
+          out.push(`"${el.textContent?.trim().slice(0, 40)}" ${ratio.toFixed(2)} < ${min}`);
+        }
+      }
+      return out;
     });
-
-    for (const viewport of [PHONE, { width: 320, height: 568 }]) {
-      test(`the contact CTA is on the first screen at ${viewport.width}×${viewport.height}`, async ({
-        page,
-      }) => {
-        await page.setViewportSize(viewport);
-        await openConcept(page, slug);
-        const cta = page.locator('#top a[href="#contact"]').first();
-        await expect(cta).toBeVisible();
-        const box = await cta.boundingBox();
-        expect(box, 'CTA has a box').not.toBeNull();
-        expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
-      });
-    }
+    expect(failures).toEqual([]);
   });
-}
+});
 
-test.describe('@smoke concept-specific phone layout', () => {
+/** Positioning and the first screen. */
+test.describe('@smoke positioning and first screen', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('kadr: the contact sheet is two frames wide; an open frame spans the sheet', async ({
+  test('hero presents a videographer; travel is a new direction among the services', async ({
     page,
   }) => {
-    await openConcept(page, 'cinematic');
-    const sheet = page.locator('#work [data-project-list]');
-    const cells = sheet.locator('.kadr-cell');
-    const sheetBox = await sheet.boundingBox();
-    const first = await cells.nth(0).boundingBox();
-    expect(sheetBox && first && first.width < sheetBox.width * 0.55).toBe(true);
-    await cells.nth(0).locator('[data-sheet-toggle]').click();
-    await expect
-      .poll(async () => (await cells.nth(0).boundingBox())?.width ?? 0)
-      .toBeGreaterThan((sheetBox?.width ?? 0) * 0.95);
+    await openHome(page);
+    const hero = page.locator('#top');
+    await expect(hero).toContainText('Снимаю, монтирую и озвучиваю');
+    await expect(hero).toContainText('Новое направление — видео о путешествиях');
+    await expect(hero).not.toContainText(/туристическ/i);
+    await expect(page.locator('#services')).toContainText('Новое направление: выездная съёмка');
   });
 
-  test('rapid: the reel shows one frame with the next one peeking', async ({ page }) => {
-    await openConcept(page, 'creative');
-    const items = page.locator('#work [data-reel-item]');
-    const first = await items.nth(0).boundingBox();
-    const second = await items.nth(1).boundingBox();
-    expect(first && first.width < PHONE.width * 0.9).toBe(true);
-    // The second frame starts inside the viewport: the strip reads as scrollable.
-    expect(second && second.x < PHONE.width).toBe(true);
-    // The reel scrolls itself; the page never scrolls sideways.
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-      true,
-    );
+  test('no heading repeats the one right before it', async ({ page }) => {
+    await openHome(page);
+    const repeats = await page.evaluate(() => {
+      const norm = (s: string | null) =>
+        (s ?? '').replace(/­/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const heads = [...document.querySelectorAll('main h1, main h2, main h3, main dt')]
+        .filter((h) => h.checkVisibility())
+        .map((h) => norm(h.textContent));
+      return heads.filter((h, i) => i > 0 && h === heads[i - 1]);
+    });
+    expect(repeats).toEqual([]);
   });
+
+  for (const viewport of [PHONE, { width: 320, height: 568 }]) {
+    test(`the contact CTA is on the first screen at ${viewport.width}×${viewport.height}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await openHome(page);
+      const cta = page.locator('#top a[href="#contact"]').first();
+      await expect(cta).toBeVisible();
+      const box = await cta.boundingBox();
+      expect(box, 'CTA has a box').not.toBeNull();
+      expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport.height);
+    });
+  }
+});
+
+test.describe('@smoke phone layout', () => {
+  test.use({ viewport: PHONE, hasTouch: true });
+
+  test('the portfolio is one frame wide on phones, frames keep 16:9', async ({ page }) => {
+    await openHome(page);
+    const sheet = page.locator('#work [data-project-list]');
+    const sheetBox = await sheet.boundingBox();
+    for (const card of await sheet.locator('[data-category]').all()) {
+      const box = await card.boundingBox();
+      expect(box && sheetBox && Math.abs(box.width - sheetBox.width) < 1).toBe(true);
+      const frame = await card.locator('[data-footage]').boundingBox();
+      expect(frame && Math.abs(frame.width / frame.height - 16 / 9) < 0.02).toBe(true);
+    }
+  });
+
+  // The pen loops overshoot their labels on purpose; the list reserves room for
+  // that. Measure the drawn loops at the narrowest phones and on desktop.
+  for (const viewport of [
+    { width: 320, height: 640 },
+    PHONE,
+    { width: 430, height: 900 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 900 },
+  ]) {
+    test(`circled roles never overlap or get clipped at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await openHome(page);
+      const problems = await page.evaluate(() => {
+        const out: string[] = [];
+        const overlap = (a: DOMRect, b: DOMRect) =>
+          a.left < b.right - 0.5 &&
+          a.right > b.left + 0.5 &&
+          a.top < b.bottom - 0.5 &&
+          a.bottom > b.top + 0.5;
+        const cards = [...document.querySelectorAll<HTMLElement>('#work [data-category]')];
+        const vw = document.documentElement.clientWidth;
+        for (const card of cards) {
+          const marks = [...card.querySelectorAll<HTMLElement>('.kadr-mark')];
+          const loops = marks.map((m) => {
+            const loop = m.querySelector('.kadr-mark-loop');
+            return loop ? loop.getBoundingClientRect() : new DOMRect();
+          });
+          const title = card.querySelector('h3')?.getBoundingClientRect();
+          marks.forEach((mark, i) => {
+            const name = mark.textContent?.trim() ?? '';
+            const loop = loops[i] ?? new DOMRect();
+            const text = mark.getBoundingClientRect();
+            // The loop encloses its own label.
+            if (
+              loop.left > text.left ||
+              loop.right < text.right ||
+              loop.top > text.top ||
+              loop.bottom < text.bottom
+            )
+              out.push(`loop does not enclose "${name}"`);
+            // Text never wraps inside a loop (one line per label).
+            if (text.height > parseFloat(getComputedStyle(mark).lineHeight) * 1.5)
+              out.push(`"${name}" wraps`);
+            if (loop.left < 0 || loop.right > vw) out.push(`loop of "${name}" leaves the screen`);
+            if (title && overlap(loop, title)) out.push(`loop of "${name}" hits the title`);
+            loops.forEach((other, j) => {
+              if (j > i && overlap(loop, other))
+                out.push(`loops of "${name}" and "${marks[j]?.textContent?.trim()}" overlap`);
+            });
+            // No ancestor clips it.
+            for (let el = mark.parentElement; el && el !== document.body; el = el.parentElement) {
+              const st = getComputedStyle(el);
+              if (st.overflow !== 'visible' || st.overflowX !== 'visible') {
+                const r = el.getBoundingClientRect();
+                if (
+                  loop.left < r.left ||
+                  loop.right > r.right ||
+                  loop.top < r.top ||
+                  loop.bottom > r.bottom
+                )
+                  out.push(`loop of "${name}" clipped by <${el.tagName.toLowerCase()}>`);
+              }
+            }
+          });
+          // Loops stay clear of the neighbouring cards.
+          for (const other of cards) {
+            if (other === card || other.hidden) continue;
+            const r = other.getBoundingClientRect();
+            for (const loop of loops)
+              if (overlap(loop, r)) out.push('loop reaches a neighbouring card');
+          }
+        }
+        return out;
+      });
+      expect(problems).toEqual([]);
+    });
+  }
 });

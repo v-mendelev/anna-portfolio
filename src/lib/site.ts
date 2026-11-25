@@ -6,29 +6,24 @@ import type { DeployDefaults } from './deploy/resolve';
  * and must satisfy these types.
  */
 export interface SiteConfig {
-  /** Public site name, used in <title> and headers. */
+  /** Public site name: <title> suffix of inner pages and og:site_name. */
   name: string;
+  /** Full <title> of the home page. Defaults to `name`. */
+  homeTitle?: string;
   /** Default meta description. */
   description: string;
   /** BCP 47 language tag for <html lang>. */
   lang: string;
   /** Open Graph locale, e.g. ru_RU. */
   locale: string;
+  /** Social preview image in /public (Open Graph / Twitter card). */
+  ogImage?: { path: string; width: number; height: number; alt: string };
+  /** Browser UI colour (mobile address bar). */
+  themeColor?: string;
   /** Per-host public URLs used when env vars are not provided. */
   deploy: DeployDefaults;
 }
 
-export interface DemoVariant {
-  /** URL slug under /design/, must match the page directory name. */
-  slug: string;
-  title: string;
-  summary: string;
-}
-
 export function defineSiteConfig(config: SiteConfig): SiteConfig {
   return config;
-}
-
-export function defineDemos<const T extends readonly DemoVariant[]>(demos: T): T {
-  return demos;
 }

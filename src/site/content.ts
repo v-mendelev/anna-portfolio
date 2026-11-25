@@ -1,12 +1,17 @@
 import type { PortfolioContent } from '../lib/portfolio';
 
 /**
- * Content for Anna Shelenkova's portfolio.
+ * Content of Anna Shelenkova's site — the only file to edit when real
+ * material arrives (see "Замена контента" in README.md).
  *
  * Facts from the brief: name, profession and the four services.
- * Everything else (projects, showreel, testimonials, contacts, bio) is a
- * clearly flagged placeholder until Anna provides real material.
- * Do not replace placeholders with invented clients, results or reviews.
+ * Everything else (projects, showreel, portrait, bio, contacts) is a clearly
+ * flagged placeholder until Anna provides real material. Do not replace
+ * placeholders with invented clients, results, reviews or numbers.
+ *
+ * Media: put files in `public/media/` and reference them as "/media/<file>".
+ * A slot with `video` renders a player, with only `poster` an image, with
+ * neither a labelled placeholder (never an empty player).
  */
 export const content: PortfolioContent = {
   person: {
@@ -14,11 +19,24 @@ export const content: PortfolioContent = {
     role: 'Видеограф',
     placeholderBio: true,
     bio: 'Здесь будет короткий рассказ Анны о себе: с чего началась съёмка, как она работает и что любит снимать. Текст появится после согласования.',
+    // portrait: '/media/anna.jpg',
+  },
+
+  // Anna is a videographer first (filming, editing, voice-over); travel
+  // production is a new direction, not yet backed by finished projects.
+  hero: {
+    lead: 'Видеограф. Снимаю, монтирую и озвучиваю видео: от съёмки до готового ролика с голосом.',
+    next: 'Новое направление — видео о путешествиях.',
+    // still: { poster: '/media/hero.jpg' },
   },
 
   showreel: {
     title: 'Шоурил',
+    description: 'Лучшие кадры из разных проектов в одном ролике: съёмка, монтаж и голос.',
     placeholder: true,
+    // video: '/media/showreel.mp4',
+    // poster: '/media/showreel.jpg',
+    // durationLabel: '1:30',
   },
 
   services: [
@@ -52,14 +70,15 @@ export const content: PortfolioContent = {
   ],
 
   categories: [
-    { id: 'travel', label: 'Путешествия' },
     { id: 'brand', label: 'Бренды' },
+    { id: 'travel', label: 'Путешествия' },
     { id: 'editing', label: 'Монтаж' },
     { id: 'voice', label: 'Озвучка' },
   ],
 
+  // Invented layout examples (placeholder: true), NOT Anna's work. Replace each
+  // with a real project: title, category, roles, and `video` and/or `poster`.
   projects: [
-    // Lead frame is not a travel shoot: travel is a new direction (see HERO).
     {
       id: 'brand-film',
       title: 'Бренд-ролик',
@@ -112,42 +131,12 @@ export const content: PortfolioContent = {
     },
   ],
 
-  travel: {
-    intro:
-      'Я начинаю снимать видео для туроператоров, отелей и туристических мест. Готовых туристических проектов пока нет — ниже показано, как будет устроена работа.',
-    steps: [
-      { title: 'Бриф', text: 'Обсуждаем направление, аудиторию и где будет жить ролик.' },
-      { title: 'План выезда', text: 'Маршрут, локации, время съёмки и список кадров.' },
-      { title: 'Съёмка на месте', text: 'Снимаю места, людей и детали, ради которых едут.' },
-      {
-        title: 'Монтаж и голос',
-        text: 'Собираю ролик, при необходимости добавляю закадровый текст.',
-      },
-    ],
-    formats: ['Горизонтальный ролик', 'Вертикальные версии', 'Короткие нарезки'],
-  },
-
-  testimonials: [
-    {
-      id: 't1',
-      quote: 'Здесь будет отзыв клиента — только реальный, с разрешения автора.',
-      author: 'Имя клиента',
-      company: 'Компания',
-      placeholder: true,
-    },
-    {
-      id: 't2',
-      quote: 'Место для второго отзыва. Пока отзывов нет, блок остаётся заглушкой.',
-      author: 'Имя клиента',
-      company: 'Компания',
-      placeholder: true,
-    },
-  ],
-
+  // Contacts render as links only once `href` (and `value`) are filled in.
   contacts: [
     { id: 'telegram', label: 'Telegram', placeholder: true },
     { id: 'email', label: 'Почта', placeholder: true },
     { id: 'phone', label: 'Телефон', placeholder: true },
+    { id: 'youdo', label: 'Профиль на YouDo', placeholder: true },
   ],
 };
 
@@ -160,35 +149,20 @@ export function categoryLabel(id: string): string {
 }
 
 /**
- * Hero positioning shared by all concepts: Anna is a videographer first
- * (filming, editing, voice-over); travel production is a new direction, not
- * her only specialisation and not yet backed by finished tourism projects.
- */
-export const HERO = {
-  lead: 'Видеограф. Снимаю, монтирую и озвучиваю видео: от съёмки до готового ролика с голосом.',
-  next: 'Новое направление — видео о путешествиях.',
-} as const;
-
-/** Travel section heading: named as a direction in development. */
-export const TRAVEL_HEADING = { main: 'Путешествия', sub: 'новое направление' } as const;
-
-/**
- * Shown above the portfolio in every concept while projects are placeholders:
- * the demo projects are invented layout examples, not Anna's actual work.
+ * Shown above the portfolio while projects are placeholders: the projects are
+ * invented layout examples, not Anna's actual work.
  */
 export const DEMO_WORK_NOTE =
   'Проекты ниже вымышлены и показывают только макет. Это не работы Анны: их заменят реальные, когда она пришлёт материалы.';
 
-/** Label for each invented project (frames and captions). */
+/** Label for each invented project. */
 export const DEMO_PROJECT_LABEL = 'вымышленный проект';
 
-/** Shared section anchors: identical ids in every concept (used by nav and tests). */
+/** Page sections, in order: anchors for the header, the phone menu and tests. */
 export const SECTIONS = [
   { id: 'showreel', label: 'Шоурил' },
   { id: 'work', label: 'Работы' },
   { id: 'services', label: 'Услуги' },
-  { id: 'travel', label: 'Путешествия' },
   { id: 'about', label: 'Обо мне' },
-  { id: 'reviews', label: 'Отзывы' },
   { id: 'contact', label: 'Контакты' },
 ] as const;

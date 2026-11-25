@@ -2,9 +2,20 @@
  * Generic portfolio content contracts (reusable across projects).
  *
  * Honesty rule: anything that is not real client material MUST be flagged
- * with `placeholder: true` so every design renders a visible label for it.
+ * with `placeholder: true` so the site renders a visible label for it.
  * Never ship invented clients, achievements or reviews as if they were real.
+ *
+ * Media paths (`poster`, `video`) are paths inside `public/`, e.g.
+ * "/media/showreel.mp4"; components resolve them with `withBase()`.
  */
+
+/** A still image or a video with an optional poster. Absent fields = not provided yet. */
+export interface Media {
+  /** Still image (or video poster) in /public. */
+  poster?: string;
+  /** Video file in /public (MP4/H.264 for the widest support). */
+  video?: string;
+}
 
 export interface Service {
   id: string;
@@ -36,17 +47,16 @@ export interface FrameTone {
   sunY?: number;
 }
 
-export interface Project {
+export interface Project extends Media {
   id: string;
   title: string;
   category: string;
+  /** One or two sentences about the project, once it is real. */
+  description?: string;
   /** Where it was filmed, if relevant. */
   place?: string;
-  /** What Anna did on the project (services ids). */
+  /** What Anna did on the project (service ids). */
   roles: readonly string[];
-  /** Real media: poster image path in /public and optional video URL. */
-  poster?: string;
-  video?: string;
   tone: FrameTone;
   placeholder: boolean;
 }
@@ -64,29 +74,40 @@ export interface ContactChannel {
   label: string;
   /** Real href (mailto:, tel:, https://t.me/...). Absent until provided. */
   href?: string;
+  /** What the visitor sees, e.g. "@username" or the e-mail address. */
   value?: string;
   placeholder: boolean;
 }
 
-export interface ProcessStep {
-  title: string;
-  text: string;
-}
-
 export interface PortfolioContent {
-  person: { name: string; role: string; location?: string; placeholderBio: boolean; bio: string };
-  showreel: {
+  person: {
+    name: string;
+    role: string;
+    location?: string;
+    placeholderBio: boolean;
+    bio: string;
+    /** Portrait (image path). Absent until provided. */
+    portrait?: string;
+  };
+  hero: {
+    /** One plain sentence: who Anna is and what she does. */
+    lead: string;
+    /** Optional second line (e.g. a new direction). */
+    next?: string;
+    /** Still frame next to the name. Absent until provided. */
+    still?: Media;
+  };
+  showreel: Media & {
     title: string;
-    video?: string;
-    poster?: string;
+    description: string;
     durationLabel?: string;
     placeholder: boolean;
   };
   services: readonly Service[];
   categories: readonly ProjectCategory[];
   projects: readonly Project[];
-  travel: { intro: string; steps: readonly ProcessStep[]; formats: readonly string[] };
-  testimonials: readonly Testimonial[];
+  /** Real reviews only (with the author's permission). Not rendered yet. */
+  testimonials?: readonly Testimonial[];
   contacts: readonly ContactChannel[];
 }
 
@@ -110,5 +131,23 @@ export function usedCategories(
   return categories.filter((c) => used.has(c.id));
 }
 
-/** Human-readable label for placeholder content (shown in every concept). */
+/**
+ * What a media slot can show right now: a playable video, a still image, or
+ * a labelled placeholder. Components branch on this so a slot never renders
+ * a player without a file.
+ */
+export function mediaState(media: Media | undefined): 'video' | 'image' | 'placeholder' {
+  if (media?.video) return 'video';
+  if (media?.poster) return 'image';
+  return 'placeholder';
+}
+
+/** Contact channels that can actually be used (real link present). */
+export function usableContacts<T extends Pick<ContactChannel, 'href'>>(
+  contacts: readonly T[],
+): T[] {
+  return contacts.filter((c) => Boolean(c.href));
+}
+
+/** Human-readable label for placeholder content. */
 export const PLACEHOLDER_LABEL = 'Заглушка';

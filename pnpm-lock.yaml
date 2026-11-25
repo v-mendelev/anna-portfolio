@@ -175,12 +175,6 @@ importers:
 
   .:
     dependencies:
-      '@fontsource-variable/alumni-sans':
-        specifier: 5.3.0
-        version: 5.3.0
-      '@fontsource-variable/noto-sans-display':
-        specifier: 5.3.0
-        version: 5.3.0
       '@fontsource-variable/onest':
         specifier: 5.3.1
         version: 5.3.1
@@ -534,12 +528,6 @@ packages:
   '@eslint/plugin-kit@0.7.3':
     resolution: {integrity: sha512-IkO+/KEUvwbVpiURZg+P7zF74z5Jxe0UgJxVni+RtoHQ6IZieXaO02kmadomap/q+l6bc/jdPGGqTjhuZnuz1Q==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  '@fontsource-variable/alumni-sans@5.3.0':
-    resolution: {integrity: sha512-M+n1UltNA62XbNgYwEHyw54DlqXjw1NAZeLby6kP7alYIURmDQuvjiHHILdJsuYtVph+JezS6U2ANWM1meox6g==}
-
-  '@fontsource-variable/noto-sans-display@5.3.0':
-    resolution: {integrity: sha512-vtQ+HBQHqdaXpFL0tW6vvQUNNOVddgllnnlwS0NsPLsuXkw62xxICvgCcZ97nFKcmzbDGeXl7B57c53LrFFrQQ==}
 
   '@fontsource-variable/onest@5.3.1':
     resolution: {integrity: sha512-xaaw6G4HDB2/RczsWLD/2bnib4ykmQlTlBUN3GOEOiyErilZukQWVJG95h9zwAy0i8KY+QzDa+COPfqhI72Acw==}
@@ -2998,10 +2986,6 @@ snapshots:
     dependencies:
       '@eslint/core': 1.2.1
       levn: 0.4.1
-
-  '@fontsource-variable/alumni-sans@5.3.0': {}
-
-  '@fontsource-variable/noto-sans-display@5.3.0': {}
 
   '@fontsource-variable/onest@5.3.1': {}
 

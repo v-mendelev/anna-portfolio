@@ -2,13 +2,12 @@
 
 /*
  * Design tokens.
- * Components must use tokens (bg-surface, text-cine-screen, font-ed-serif, ...)
- * instead of raw colours so a theme can be swapped in one place.
+ * Components must use tokens (bg-paper, text-volt, font-kadr, ...) instead of
+ * raw colours so the theme can be changed in one place.
  *
- * Base tokens: neutral starter theme (chooser page, 404).
- * Concept tokens: one namespace per design demo (cine-, ed-, cr-). Font
- * families are self-hosted (@fontsource-variable/*) and imported only by the
- * page that uses them.
+ * Base tokens: neutral starter theme (reusable defaults).
+ * Site tokens: the KADR identity below. Fonts are self-hosted
+ * (@fontsource-variable/onest) and declared per page via FontFaces.
  */
 @theme {
   /* Base (starter) */
@@ -27,12 +26,12 @@
   --container-wide: 90rem;
 
   /*
-   * Portfolio identity, shared by the three concepts: white paper and ONE
-   * saturated accent, electric blue. Black and deep blue are neutral type.
-   * Contrast on white: volt 7.41:1, volt-deep 12.39:1, ink 21:1 (all AA for
-   * any text size); white on volt-deep 12.39:1. volt-tint is a fill only
+   * Site identity (the KADR design): white paper, ONE saturated accent —
+   * electric blue — for headings, frames and primary actions, and black for
+   * running text and descriptions.
+   * Contrast on white: volt 7.41:1, volt-deep 12.39:1, pitch 21:1 (all AA for
+   * any text size); white on volt 7.41:1. volt-tint is a fill only
    * (1.21:1 on white): never text, never a border that must be seen.
-   * Never set volt on dark footage (2.83:1 on black): use a white plate.
    */
   --color-paper: #ffffff;
   --color-volt: #1a2bff;
@@ -40,19 +39,8 @@
   --color-volt-tint: #e6e8ff;
   --color-pitch: #000000;
 
-  /* A. KADR (/design/cinematic/): viewfinder grid, Onest only. */
+  /* One family for display and text: Onest (see src/site/fonts.ts). */
   --font-kadr: 'Onest Variable', 'Onest Variable Fallback', sans-serif;
-
-  /* B. SKLEYKA (/design/editorial/): condensed display + Onest text. */
-  --font-sk-display: 'Alumni Sans Variable', 'Alumni Sans Variable Fallback', sans-serif;
-  --font-sk-text: 'Onest Variable', 'Onest Variable Fallback', sans-serif;
-
-  /* C. RAPID (/design/creative/): one variable family, weight + width axes
-     (Noto Sans Display, wdth 62.5–100 via font-stretch). Condensed text uses
-     --font-rp-condensed so its fallback matches the narrower width. */
-  --font-rp: 'Noto Sans Display Variable', 'Noto Sans Display Variable Fallback', sans-serif;
-  --font-rp-condensed:
-    'Noto Sans Display Variable', 'Noto Sans Display Variable Condensed Fallback', sans-serif;
 }
 
 @layer base {

@@ -29,16 +29,6 @@ const FONTS = [
     file: 'onest/files/onest-cyrillic-wght-normal.woff2',
     fallback: 'sans',
   },
-  {
-    name: 'Alumni Sans Variable',
-    file: 'alumni-sans/files/alumni-sans-cyrillic-wght-normal.woff2',
-    fallback: 'sans',
-  },
-  {
-    name: 'Noto Sans Display Variable',
-    file: 'noto-sans-display/files/noto-sans-display-cyrillic-wdth-normal.woff2',
-    fallback: 'sans',
-  },
 ];
 
 // WOFF2 known-table index (spec section 5.1); names padded to 4 characters.

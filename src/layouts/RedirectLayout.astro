@@ -1,0 +1,46 @@
+---
+/**
+ * Static redirect page for hosts without server redirects (GitHub Pages).
+ * A standalone document with no stylesheet or script bundle, so nothing is
+ * downloaded only to be cancelled by the redirect. Meta refresh works without
+ * JS; the inline script also keeps the #fragment (meta refresh drops it).
+ * The page is noindex and its canonical points at the target, so search
+ * engines index the target only.
+ */
+import { withBase } from '../lib/paths';
+import { siteConfig } from '../site/site.config';
+
+export interface Props {
+  /** Target path relative to the base, e.g. "/". */
+  to: string;
+  /** Visible text of the fallback link. */
+  label: string;
+}
+
+const { to, label } = Astro.props;
+const target = withBase(to);
+const canonical = new URL(target, Astro.site).toString();
+---
+
+<!doctype html>
+<html lang={siteConfig.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{label}</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href={canonical} />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <script is:inline define:vars={{ target }}>
+      location.replace(target + location.hash);
+    </script>
+  </head>
+  <body style="font-family: system-ui, sans-serif; margin: 2rem">
+    <main id="main">
+      <h1 style="font-size: 1.5rem">{label}</h1>
+      <p>
+        <a href={target}>Перейти на главную</a>
+      </p>
+    </main>
+  </body>
+</html>

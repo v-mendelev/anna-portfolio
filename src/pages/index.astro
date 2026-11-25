@@ -1,24 +1,22 @@
 ---
-/**
- * Temporary root page: while only design demos exist, send visitors to
- * /design/. Static hosting (GitHub Pages) has no server redirects, so we use
- * a meta refresh plus a visible link (works without JS).
- */
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Container from '../components/ui/Container.astro';
-import { withBase } from '../lib/paths';
+/** Home page: the whole site (see src/site/components/HomePage.astro). */
+import HomePage from '../site/components/HomePage.astro';
+import SiteLayout from '../site/components/SiteLayout.astro';
+import { content } from '../site/content';
+import { siteConfig } from '../site/site.config';
 
-const target = withBase('/design/');
+// Structured data: only facts from content (name, profession, services).
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: content.person.name,
+  jobTitle: content.person.role,
+  url: Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined,
+  knowsAbout: content.services.map((s) => s.title),
+};
 ---
 
-<BaseLayout title="Демоверсии" noindex>
-  <meta slot="head" http-equiv="refresh" content={`0; url=${target}`} />
-  <Container as="main" id="main" class="py-12 sm:py-20" data-testid="page-container">
-    <h1 class="text-3xl font-bold tracking-tight">Сайт в разработке</h1>
-    <p class="text-ink-muted mt-4">
-      <a class="text-accent font-medium underline" href={target}>
-        Перейти к демоверсиям дизайна
-      </a>
-    </p>
-  </Container>
-</BaseLayout>
+<SiteLayout fullTitle={siteConfig.homeTitle}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(person)} />
+  <HomePage />
+</SiteLayout>

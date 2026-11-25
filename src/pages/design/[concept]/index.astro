@@ -1,0 +1,11 @@
+---
+/** Legacy URLs of the three design concepts → home page. See src/site/redirects.ts. */
+import type { GetStaticPaths } from 'astro';
+import RedirectLayout from '../../../layouts/RedirectLayout.astro';
+import { LEGACY_CONCEPTS, LEGACY_TARGET } from '../../../site/redirects';
+
+export const getStaticPaths = (() =>
+  LEGACY_CONCEPTS.map((concept) => ({ params: { concept } }))) satisfies GetStaticPaths;
+---
+
+<RedirectLayout to={LEGACY_TARGET} label="Сайт Анны Шеленковой" />

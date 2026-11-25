@@ -1,20 +1,13 @@
 /**
- * Which fonts each page loads. Project-specific; generic logic is in lib/fonts.ts.
+ * Which fonts the site loads. Project-specific; generic logic is in lib/fonts.ts.
  *
- * Families (all OFL-1.1, self-hosted WOFF2, Cyrillic + basic Latin only;
- * ё, й, ъ verified in every Cyrillic file):
- *  - Onest (wght 100–900): KADR display and text, SKLEYKA text;
- *  - Alumni Sans (wght 100–900): SKLEYKA condensed display;
- *  - Noto Sans Display (wght 100–900, wdth 62.5–100): RAPID, the only family on
- *    that page; width is set with font-stretch (62.5%–100%).
- * One preload per page: the Cyrillic file of the face that sets the h1.
+ * One family: Onest (OFL-1.1, wght 100–900), self-hosted WOFF2, Cyrillic +
+ * basic Latin only (ё, й, ъ verified in the Cyrillic file). It sets both the
+ * display type and the text of the KADR design.
+ * One preload: the Cyrillic file, which sets the h1.
  * Fallback metrics: see the note above `fallbacks`.
  */
-import alumniCyr from '@fontsource-variable/alumni-sans/files/alumni-sans-cyrillic-wght-normal.woff2?url';
-import alumniLat from '@fontsource-variable/alumni-sans/files/alumni-sans-latin-wght-normal.woff2?url';
 import onestCyr from '@fontsource-variable/onest/files/onest-cyrillic-wght-normal.woff2?url';
-import notoDisplayCyr from '@fontsource-variable/noto-sans-display/files/noto-sans-display-cyrillic-wdth-normal.woff2?url';
-import notoDisplayLat from '@fontsource-variable/noto-sans-display/files/noto-sans-display-latin-wdth-normal.woff2?url';
 import onestLat from '@fontsource-variable/onest/files/onest-latin-wght-normal.woff2?url';
 import { SANS_FALLBACKS, type FallbackFace, type FontSet, type WebFontFace } from '../lib/fonts';
 
@@ -24,19 +17,6 @@ const faces = {
     style: 'normal',
     weight: '100 900',
     files: { cyrillic: onestCyr, latin: onestLat },
-  },
-  alumni: {
-    family: 'Alumni Sans Variable',
-    style: 'normal',
-    weight: '100 900',
-    files: { cyrillic: alumniCyr, latin: alumniLat },
-  },
-  notoDisplay: {
-    family: 'Noto Sans Display Variable',
-    style: 'normal',
-    weight: '100 900',
-    stretch: '62.5% 100%',
-    files: { cyrillic: notoDisplayCyr, latin: notoDisplayLat },
   },
 } satisfies Record<string, WebFontFace>;
 
@@ -60,7 +40,7 @@ const SANS_BOLD = [
 const fallbacks = {
   onest: [
     {
-      // Regular text (SKLEYKA body). Windows (fractional advances, Arial) and
+      // Regular text (400). Windows (fractional advances, Arial) and
       // Linux CI (whole-pixel advances, Liberation Sans) differ by ~3.7% here;
       // size-adjust sits midway: fallback/web width 0.982 (Win) / 1.018 (Linux).
       for: 'Onest Variable',
@@ -72,7 +52,7 @@ const fallbacks = {
       lineGapOverride: '0%',
     },
     {
-      // Medium text (KADR body): midway again, 0.986 (Win) / 1.015 (Linux).
+      // Medium text (body, 500): midway again, 0.986 (Win) / 1.015 (Linux).
       for: 'Onest Variable',
       local: SANS_FALLBACKS,
       weight: '450 549',
@@ -101,71 +81,13 @@ const fallbacks = {
       lineGapOverride: '0%',
     },
   ],
-  alumni: [
-    {
-      for: 'Alumni Sans Variable',
-      local: SANS_BOLD,
-      sizeAdjust: '58.2%',
-      ascentOverride: '154.64%',
-      descentOverride: '51.55%',
-      lineGapOverride: '0%',
-    },
-  ],
-  notoDisplay: [
-    {
-      for: 'Noto Sans Display Variable',
-      local: SANS_FALLBACKS,
-      weight: '100 649',
-      sizeAdjust: '102.45%',
-      ascentOverride: '104.34%',
-      descentOverride: '28.6%',
-      lineGapOverride: '0%',
-    },
-    {
-      for: 'Noto Sans Display Variable',
-      local: SANS_BOLD,
-      weight: '650 1000',
-      sizeAdjust: '100.45%',
-      ascentOverride: '106.42%',
-      descentOverride: '29.17%',
-      lineGapOverride: '0%',
-    },
-    {
-      // Text set condensed (font-stretch 62.5–75%, font-family var(--font-rp-condensed)).
-      for: 'Noto Sans Display Variable',
-      variant: 'Condensed',
-      local: SANS_BOLD,
-      sizeAdjust: '79.5%',
-      ascentOverride: '134.47%',
-      descentOverride: '36.86%',
-      lineGapOverride: '0%',
-    },
-  ],
 } satisfies Record<string, FallbackFace[]>;
 
 export const fontSets = {
-  /** KADR — /design/cinematic/ */
-  cinematic: {
+  /** Every page of the site (home, 404, legacy redirects). */
+  site: {
     faces: [faces.onest],
     fallbacks: fallbacks.onest,
     preload: [onestCyr],
-  },
-  /** SKLEYKA — /design/editorial/ */
-  editorial: {
-    faces: [faces.alumni, faces.onest],
-    fallbacks: [...fallbacks.alumni, ...fallbacks.onest],
-    preload: [alumniCyr],
-  },
-  /** RAPID — /design/creative/ */
-  creative: {
-    faces: [faces.notoDisplay],
-    fallbacks: fallbacks.notoDisplay,
-    preload: [notoDisplayCyr],
-  },
-  /** Chooser previews each concept's display face on its Cyrillic name only. */
-  chooser: {
-    faces: [faces.onest, faces.alumni, faces.notoDisplay],
-    fallbacks: [...fallbacks.onest, ...fallbacks.alumni, ...fallbacks.notoDisplay],
-    preload: [],
   },
 } satisfies Record<string, FontSet>;

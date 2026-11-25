@@ -40,6 +40,11 @@ export interface Props {
    * while the frame keeps its ratio, accessible description and label.
    */
   paint?: 'scene' | 'none';
+  /**
+   * Render a real video as a player (controls, sound, no loop) instead of a
+   * silent looping clip. Use for showreels and project videos.
+   */
+  player?: boolean;
 }
 
 const {
@@ -56,6 +61,7 @@ const {
   tag = true,
   horizon = 'hard',
   paint = 'scene',
+  player = false,
 } = Astro.props;
 
 const style = [
@@ -75,7 +81,17 @@ const style = [
   style={style}
   data-footage
 >
-  {video ? (
+  {video && player ? (
+    <video
+      class="absolute inset-0 h-full w-full bg-black object-contain"
+      src={withBase(video)}
+      poster={poster ? withBase(poster) : undefined}
+      controls
+      playsinline
+      preload="metadata"
+      aria-label={description}
+    />
+  ) : video ? (
     <video
       class="absolute inset-0 h-full w-full object-cover"
       src={withBase(video)}

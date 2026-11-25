@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Review screenshots of every design route in Chromium and WebKit,
+ * Review screenshots of every page in Chromium and WebKit,
  * desktop and mobile, first viewport and full page.
  *
  * Usage (needs a running server, e.g. `pnpm build && pnpm preview`):
@@ -16,12 +16,7 @@ import { chromium, devices, webkit } from '@playwright/test';
 const baseUrl = (process.argv[2] ?? 'http://127.0.0.1:4321/').replace(/\/?$/, '/');
 const outDir = process.argv[3] ?? 'screenshots';
 
-const routes = [
-  { name: 'chooser', path: 'design/' },
-  { name: 'cinematic', path: 'design/cinematic/' },
-  { name: 'editorial', path: 'design/editorial/' },
-  { name: 'creative', path: 'design/creative/' },
-];
+const routes = [{ name: 'home', path: '' }];
 
 const targets = [
   {

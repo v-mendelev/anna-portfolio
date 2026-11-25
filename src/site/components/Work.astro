@@ -1,0 +1,54 @@
+---
+/** Portfolio: a contact sheet of projects with category filters. */
+import { usedCategories } from '../../lib/portfolio';
+import { DEMO_WORK_NOTE, content } from '../content';
+import ProjectCard from './ProjectCard.astro';
+
+const { projects } = content;
+const categories = usedCategories(content.categories, projects);
+const hasPlaceholders = projects.some((p) => p.placeholder);
+---
+
+<section id="work" class="border-t-2 border-volt">
+  <div class="kadr-wrap py-16 lg:py-24" data-testid="page-container" data-filter-root>
+    <div class="grid gap-x-6 gap-y-5 lg:grid-cols-12">
+      <h2 class="kadr-h2 lg:col-span-5">Работы</h2>
+      <div class="lg:col-span-7 lg:pt-3">
+        {hasPlaceholders && (
+          <p class="max-w-[31em] text-base leading-relaxed font-medium" data-demo-note>
+            {DEMO_WORK_NOTE}
+          </p>
+        )}
+        {categories.length > 1 && (
+          <div class="mt-4 -ml-3 flex flex-wrap gap-x-1" role="group" aria-label="Фильтр работ">
+            <button type="button" class="kadr-filter" data-filter="all" aria-pressed="true">
+              Все
+            </button>
+            {categories.map((c) => (
+              <button type="button" class="kadr-filter" data-filter={c.id} aria-pressed="false">
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <p
+          class="mt-3 text-sm font-semibold"
+          data-filter-status
+          data-template="Показано работ: {n}"
+          aria-live="polite"
+        >
+          Показано работ: {projects.length}
+        </p>
+      </div>
+    </div>
+
+    <ol
+      class="kadr-sheet mt-12 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-3"
+      data-project-list
+    >
+      {projects.map((project, index) => (
+        <ProjectCard project={project} index={index} />
+      ))}
+    </ol>
+  </div>
+</section>

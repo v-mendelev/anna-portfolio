@@ -1,0 +1,66 @@
+---
+/**
+ * One project on the contact sheet: a frame in viewfinder marks (numbered by
+ * its place on the sheet), the title, the category and what Anna did —
+ * each service circled in blue. A project with a video plays in place.
+ */
+import FootageFrame from '../../components/ui/FootageFrame.astro';
+import PlaceholderTag from '../../components/ui/PlaceholderTag.astro';
+import type { Project } from '../../lib/portfolio';
+import { DEMO_PROJECT_LABEL, categoryLabel, serviceTitle } from '../content';
+
+export interface Props {
+  project: Project;
+  /** Position on the sheet, from 0. */
+  index: number;
+}
+
+const { project: p, index } = Astro.props;
+const frameNo = String(index + 1).padStart(2, '0');
+const titleId = `project-${p.id}`;
+const meta = [categoryLabel(p.category), p.place].filter(Boolean).join(', ');
+---
+
+<li data-category={p.category} class="kadr-cell">
+  <article aria-labelledby={titleId}>
+    <div class="kadr-frame relative">
+      <span class="vf" aria-hidden="true"></span>
+      <FootageFrame
+        tone={p.tone}
+        paint="none"
+        ratio="16 / 9"
+        class="kadr-slate"
+        description={`Кадр из проекта «${p.title}»`}
+        video={p.video}
+        poster={p.poster}
+        placeholder={p.placeholder}
+        player
+        tag={false}
+      />
+      {!p.video && (
+        <span class="kadr-frame-no" aria-hidden="true">
+          {frameNo}
+        </span>
+      )}
+    </div>
+    <h3
+      id={titleId}
+      class="mt-4 text-lg leading-tight font-extrabold tracking-[-0.01em] xl:text-xl"
+    >
+      {p.title}
+    </h3>
+    <p class="mt-1 text-sm font-medium">{meta}</p>
+    {p.description && <p class="mt-2 text-base leading-snug font-medium">{p.description}</p>}
+    <ul class="kadr-marks mt-2" aria-label="Что я делала в проекте">
+      {p.roles.map((role) => (
+        <li class="kadr-mark">
+          <span class="kadr-mark-loop" aria-hidden="true"></span>
+          {serviceTitle(role)}
+        </li>
+      ))}
+    </ul>
+    {p.placeholder && (
+      <PlaceholderTag detail={DEMO_PROJECT_LABEL} class="mt-1 block text-xs font-semibold" />
+    )}
+  </article>
+</li>

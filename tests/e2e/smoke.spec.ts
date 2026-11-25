@@ -1,3 +1,4 @@
+import { runLiveCheck } from '../../src/lib/delivery/live';
 import { expect, test } from './fixtures';
 import { ROUTES } from './routes';
 
@@ -71,3 +72,36 @@ for (const route of ROUTES) {
     });
   });
 }
+
+/**
+ * The post-deploy live smoke (deploy-pages.yml → scripts/delivery/run.ts)
+ * checks exactly these ROUTES and requires at least one same-origin CSS, JS
+ * and font file, each answering 200. Run the same checker against this build
+ * so a route list of asset-free pages (e.g. redirects) or an inlined script
+ * fails here, before a deploy, not in "Verify live site" afterwards.
+ * Only build-info.json is stubbed: CI writes it at deploy time.
+ */
+test.describe('@smoke deploy verification', () => {
+  test('the live-smoke checker passes on this build', async ({ baseURL, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Runs in Node; one browser project is enough');
+    if (!baseURL) throw new Error('baseURL is not configured');
+    const sha = 'local-build';
+    const report = await runLiveCheck({
+      baseUrl: baseURL,
+      routes: ROUTES.map((r) => r.path),
+      expectedSha: sha,
+      attempts: 1,
+      fetch: (url) =>
+        new URL(url).pathname.endsWith('/build-info.json')
+          ? Promise.resolve(new Response(JSON.stringify({ sha })))
+          : fetch(url),
+    });
+    expect(report.errors).toEqual([]);
+    for (const kind of ['css', 'js', 'font'] as const) {
+      expect(
+        report.checks.some((c) => c.kind === kind && c.ok),
+        kind,
+      ).toBe(true);
+    }
+  });
+});

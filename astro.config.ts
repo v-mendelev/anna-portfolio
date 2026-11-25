@@ -33,5 +33,13 @@ export default defineConfig({
   },
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      // Never inline scripts or assets into HTML: the page script ships as a
+      // cacheable /_astro/*.js file. The post-deploy live smoke
+      // (src/lib/delivery/live.ts) requires at least one same-origin JS, CSS
+      // and font file and checks each answers 200; an inlined script would
+      // leave nothing to check and fail the deploy verification.
+      assetsInlineLimit: 0,
+    },
   },
 });

@@ -2,16 +2,16 @@
 
 ## Уровни
 
-| Уровень              | Инструмент                                          | Где                            | Запуск                           |
-| -------------------- | --------------------------------------------------- | ------------------------------ | -------------------------------- |
-| Типы                 | `astro check` (TS 6, strict)                        | весь проект, включая `.astro`  | `pnpm typecheck`                 |
-| Линт                 | ESLint 10 + typescript-eslint + eslint-plugin-astro | весь проект                    | `pnpm lint`                      |
-| Форматирование       | Prettier (+ astro, tailwind)                        | весь проект                    | `pnpm format:check`              |
-| Unit                 | Vitest 5                                            | `src/**/*.test.ts`             | `pnpm test`                      |
-| Сборка               | `astro build` (local + pages)                       | —                              | `pnpm build`, `pnpm build:pages` |
-| Smoke/E2E            | Playwright (Chromium, WebKit iPhone 13)             | `tests/e2e/`                   | `pnpm test:e2e`                  |
-| Адаптивность         | Playwright, 11 ширин                                | `tests/e2e/responsive.spec.ts` | входит в `test:e2e`              |
-| Визуальная регрессия | Playwright `toHaveScreenshot`                       | `tests/visual/`                | `pnpm test:visual` (opt-in)      |
+| Уровень              | Инструмент                                          | Где                               | Запуск                           |
+| -------------------- | --------------------------------------------------- | --------------------------------- | -------------------------------- |
+| Типы                 | `astro check` (TS 6, strict)                        | весь проект, включая `.astro`     | `pnpm typecheck`                 |
+| Линт                 | ESLint 10 + typescript-eslint + eslint-plugin-astro | весь проект                       | `pnpm lint`                      |
+| Форматирование       | Prettier (+ astro, tailwind)                        | весь проект                       | `pnpm format:check`              |
+| Unit                 | Vitest 5                                            | `src/**/*.test.ts`, `tests/unit/` | `pnpm test`                      |
+| Сборка               | `astro build` (local + pages)                       | —                                 | `pnpm build`, `pnpm build:pages` |
+| Smoke/E2E            | Playwright (Chromium, WebKit iPhone 13)             | `tests/e2e/`                      | `pnpm test:e2e`                  |
+| Адаптивность         | Playwright, 11 ширин                                | `tests/e2e/responsive.spec.ts`    | входит в `test:e2e`              |
+| Визуальная регрессия | Playwright `toHaveScreenshot`                       | `tests/visual/`                   | `pnpm test:visual` (opt-in)      |
 
 Полная регрессия: **`pnpm verify`**.
 
@@ -26,6 +26,20 @@
   честность заглушек (проект без медиа, отзыв без автора, контакт без ссылки
   обязаны быть `placeholder`).
 - `lib/portfolio.test.ts` — фильтр работ по категориям.
+- `lib/delivery/*.test.ts` — конвейер доставки на in-memory GitHub: одобрение
+  (только владелец, только точный SHA, только этот PR, не Dependabot/форк/draft),
+  merge App'ом ровно одобренного SHA после зелёного CI этого PR (устаревший SHA,
+  новые коммиты, перенаправление, красный/незавершённый CI, поддельные статусы,
+  изменённый комментарий, дубликаты событий, конфликт — без merge), удаление
+  только смёрженных конвейером `feature/*`, promotion только полностью
+  одобренного `dev`, sync без изменений файлов, безопасная остановка при сбоях
+  и неверных данных App; live smoke (SHA, 200, CSS/JS/шрифты); JWT и токен App
+  с минимальными правами. `merge-gate.test.ts` — правила CI и одобрения по
+  отдельности.
+- `tests/unit/delivery-workflows.test.ts` — проводка и безопасность workflow
+  (нет `pull_request_target`, `workflow_run` только в `delivery-merge.yml`,
+  никакого кода PR и артефактов в job с ключом App, `GITHUB_TOKEN` только на
+  чтение, ключ App только в окружении `delivery`).
 - `lib/fonts.test.ts` — генерация `@font-face`: WOFF2, `swap`, только
   cyrillic/latin, fallback-метрики, диапазоны весов, настоящий курсив.
 

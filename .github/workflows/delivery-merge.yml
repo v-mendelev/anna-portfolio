@@ -1,0 +1,63 @@
+name: Delivery · merge approved PR
+
+# CI finished for a feature/* pull request → merge it into dev with the App,
+# but only if its CURRENT head SHA carries a valid publish approval for exactly
+# this PR and CI passed for exactly that SHA (see src/lib/delivery/merge.ts).
+# The merge call is bound to the SHA; branch protection still applies.
+#
+# Security (replaces the old PR-target guard; GitHub blocks that event in public
+# repositories from 2026-12-02, see DELIVERY.md):
+# - workflow_run always runs this file from the DEFAULT branch, never from a PR;
+# - only the default-branch code is checked out; PR code is never run here;
+# - no artifacts are downloaded; the event payload is only a trigger — the run
+#   and the PR are re-read from the API before anything happens;
+# - GITHUB_TOKEN is read-only (CI results); writes use the App token.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: ['feature/**']
+
+permissions: {}
+
+jobs:
+  merge:
+    name: Merge approved PR at the tested SHA
+    if: >-
+      vars.DELIVERY_REPOSITORY == github.repository &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    # Job-level (applies only after `if:` passed, so fork runs never queue here):
+    # one attempt per branch at a time, never cancelled. Duplicates are harmless —
+    # the merge is bound to the SHA and a second attempt finds the PR merged.
+    concurrency:
+      group: delivery-merge-${{ github.event.workflow_run.head_branch }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: delivery
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    steps:
+      - name: Check out the default branch (trusted code only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+
+      # No dependency install: the script uses only Node built-ins.
+      - name: Verify approval + CI and merge at the exact SHA
+        run: node scripts/delivery/run.ts merge
+        env:
+          DELIVERY_REPOSITORY: ${{ vars.DELIVERY_REPOSITORY }}
+          DELIVERY_APPROVERS: ${{ vars.DELIVERY_APPROVERS }}
+          DELIVERY_APP_ID: ${{ vars.DELIVERY_APP_ID }}
+          DELIVERY_APP_PRIVATE_KEY: ${{ secrets.DELIVERY_APP_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}

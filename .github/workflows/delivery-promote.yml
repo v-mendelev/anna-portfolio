@@ -1,0 +1,65 @@
+name: Delivery · promote
+
+# dev → main promotion, run after every push to dev (once its CI finished) or main:
+# - keeps ONE promotion PR (head dev, base main) and enables auto-merge (merge
+#   commit) bound to the dev SHA only if every commit in main..dev is from an
+#   approved feature PR or content-neutral. Anything else (direct pushes,
+#   Dependabot, unapproved PRs, workflow changes) leaves the PR open with
+#   auto-merge OFF and a failing `delivery/promotion` status explaining why;
+# - after a promotion, merges main back into dev through a sync PR (required
+#   because main demands "up to date" branches), only if that changes no file;
+# - deletes feature/* branches the pipeline merged (approved PR, branch still at
+#   the merged head, no other open PR) — replaces the old cleanup on PR close.
+#
+# PRs and merges are made with the App's token, so CI runs on them and the
+# push to main triggers "Deploy demo to GitHub Pages" (the default Actions token could not).
+#
+# Trusted code only: every trigger runs the DEFAULT branch's workflow file and
+# code. A push to dev is observed through CI's push run (workflow_run), not a
+# `push: dev` trigger, which would run dev's own copy of this file with the key.
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [dev]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  promote:
+    name: Promote dev → main
+    if: >-
+      vars.DELIVERY_REPOSITORY == github.repository &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      (github.event_name != 'workflow_run' ||
+        (github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_repository.full_name == github.repository))
+    # Serialized; a newer pending run replaces an older one (each run evaluates
+    # the latest state, so nothing is lost). Never cancel a running promotion.
+    concurrency:
+      group: delivery-promote
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: delivery
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Sync main → dev or create/update the promotion PR; clean up merged branches
+        run: node scripts/delivery/run.ts promote
+        env:
+          DELIVERY_REPOSITORY: ${{ vars.DELIVERY_REPOSITORY }}
+          DELIVERY_APPROVERS: ${{ vars.DELIVERY_APPROVERS }}
+          DELIVERY_APP_ID: ${{ vars.DELIVERY_APP_ID }}
+          DELIVERY_APP_PRIVATE_KEY: ${{ secrets.DELIVERY_APP_PRIVATE_KEY }}

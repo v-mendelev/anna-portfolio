@@ -1,0 +1,146 @@
+/**
+ * Delivery pipeline configuration.
+ *
+ * Everything project-specific comes from GitHub repository variables, so the
+ * same code works for any site built from this starter. The pipeline is inert
+ * until `DELIVERY_REPOSITORY` equals the running repository — that variable is
+ * the explicit activation switch (forks and template copies stay inactive).
+ */
+
+export interface DeliveryConfig {
+  /** "owner/name" of the repository the pipeline is allowed to act on. */
+  repository: string;
+  owner: string;
+  devBranch: string;
+  mainBranch: string;
+  /** Only branches with this prefix are eligible for approval and cleanup. */
+  featurePrefix: string;
+  /** Lower-cased GitHub logins whose `/publish-approve` comments count. */
+  approvers: readonly string[];
+  /** Commit status that records an approval (written only by the App). */
+  approvalContext: string;
+  /** Commit status on the dev head that explains the promotion decision. */
+  promotionContext: string;
+  /**
+   * Paths the automation never merges on its own: the pipeline itself and the
+   * workflows. Changes there need a human merge (and the App has no
+   * `workflows` permission, so GitHub would refuse anyway).
+   */
+  manualOnlyPaths: readonly string[];
+  /** CI workflow whose successful pull_request run allows a merge into dev. */
+  ciWorkflowPath: string;
+  /** Required check (job) inside that workflow, also required by the dev ruleset. */
+  requiredCheck: string;
+  /** App that must have created the required check (GitHub Actions). */
+  ciAppSlug: string;
+}
+
+export interface DeliveryEnv {
+  GITHUB_REPOSITORY?: string | undefined;
+  DELIVERY_REPOSITORY?: string | undefined;
+  DELIVERY_APPROVERS?: string | undefined;
+  DELIVERY_DEV_BRANCH?: string | undefined;
+  DELIVERY_MAIN_BRANCH?: string | undefined;
+}
+
+export class DeliveryNotActivatedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DeliveryNotActivatedError';
+  }
+}
+
+const REPO_RE = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
+const LOGIN_RE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
+const BRANCH_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
+export const DEFAULT_MANUAL_ONLY_PATHS: readonly string[] = [
+  '.github/',
+  'scripts/delivery/',
+  'src/lib/delivery/',
+];
+
+function branch(value: string | undefined, fallback: string): string {
+  const name = (value ?? '').trim() || fallback;
+  if (!BRANCH_RE.test(name)) throw new Error(`Invalid branch name in delivery config: ${name}`);
+  return name;
+}
+
+export function loadDeliveryConfig(env: DeliveryEnv): DeliveryConfig {
+  const actual = (env.GITHUB_REPOSITORY ?? '').trim();
+  const expected = (env.DELIVERY_REPOSITORY ?? '').trim();
+  if (!expected) {
+    throw new DeliveryNotActivatedError(
+      'DELIVERY_REPOSITORY is not set: delivery automation is not activated.',
+    );
+  }
+  if (!REPO_RE.test(expected)) throw new Error('DELIVERY_REPOSITORY must look like "owner/name".');
+  if (actual.toLowerCase() !== expected.toLowerCase()) {
+    throw new DeliveryNotActivatedError(
+      `Running in ${actual || '(unknown)'}, but delivery is activated only for ${expected}.`,
+    );
+  }
+  const [owner = ''] = expected.split('/');
+
+  const approvers = (env.DELIVERY_APPROVERS ?? '')
+    .split(',')
+    .map((login) => login.trim().replace(/^@/, '').toLowerCase())
+    .filter(Boolean);
+  for (const login of approvers) {
+    if (!LOGIN_RE.test(login)) throw new Error(`Invalid approver login: ${login}`);
+  }
+
+  const devBranch = branch(env.DELIVERY_DEV_BRANCH, 'dev');
+  const mainBranch = branch(env.DELIVERY_MAIN_BRANCH, 'main');
+  if (devBranch === mainBranch) throw new Error('dev and main branches must differ.');
+
+  return {
+    repository: expected,
+    owner,
+    devBranch,
+    mainBranch,
+    featurePrefix: 'feature/',
+    // Default: only the repository owner may approve.
+    approvers: approvers.length > 0 ? approvers : [owner.toLowerCase()],
+    approvalContext: 'delivery/approval',
+    promotionContext: 'delivery/promotion',
+    manualOnlyPaths: DEFAULT_MANUAL_ONLY_PATHS,
+    ciWorkflowPath: '.github/workflows/ci.yml',
+    requiredCheck: 'CI passed',
+    ciAppSlug: 'github-actions',
+  };
+}
+
+const PEM_RE =
+  /^-----BEGIN (?:RSA )?PRIVATE KEY-----\n[A-Za-z0-9+/=\s]+\n-----END (?:RSA )?PRIVATE KEY-----$/;
+
+export interface AppCredentials {
+  appId: string;
+  privateKey: string;
+}
+
+/**
+ * Validates the App credentials before any network call. Error messages never
+ * contain the values themselves.
+ */
+export function readAppCredentials(env: {
+  DELIVERY_APP_ID?: string | undefined;
+  DELIVERY_APP_PRIVATE_KEY?: string | undefined;
+}): AppCredentials {
+  const appId = (env.DELIVERY_APP_ID ?? '').trim();
+  // Secrets pasted on one line keep literal "\n" sequences.
+  const privateKey = (env.DELIVERY_APP_PRIVATE_KEY ?? '').replace(/\\n/g, '\n').trim();
+  if (!appId) throw new Error('DELIVERY_APP_ID is not set (repository variable).');
+  if (!/^\d+$/.test(appId) && !/^Iv[0-9A-Za-z.]+$/.test(appId)) {
+    throw new Error('DELIVERY_APP_ID must be the numeric App ID or the App client ID.');
+  }
+  if (!privateKey) {
+    throw new Error('DELIVERY_APP_PRIVATE_KEY is not set (secret of the "delivery" environment).');
+  }
+  if (!PEM_RE.test(privateKey)) {
+    throw new Error(
+      'DELIVERY_APP_PRIVATE_KEY is not a PEM private key (paste the whole .pem file).',
+    );
+  }
+  return { appId, privateKey };
+}

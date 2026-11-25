@@ -1,0 +1,99 @@
+name: Delivery · approve
+
+# Publish approval: an authorized approver (default: the repository owner)
+# comments exactly `/publish-approve <full head SHA>` on a feature/* → dev PR.
+# The App records the approval as a commit status on that SHA (naming the PR,
+# the approver and the comment). If CI already passed for that SHA the App
+# merges now; otherwise delivery-merge.yml merges when CI completes. Either way
+# the merge is bound to the SHA and branch protection still applies.
+#
+# Security:
+# - issue_comment always runs the DEFAULT BRANCH's workflow and code; the PR's
+#   code is never checked out or executed here.
+# - The App key lives in the `delivery` environment (deployment branch: main
+#   only), so workflows on any other branch can never read it.
+# - Only the repository owner's account can start the approval job: the gate
+#   compares the authenticated comment author with github.repository_owner
+#   (author_association alone did not admit the owner's own comment, PR #11).
+#   The script re-checks the approver list, PR, SHA and CI before any merge.
+# - Inert until the repository variable DELIVERY_REPOSITORY equals this repo.
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  approve:
+    name: Approve publish
+    if: >-
+      vars.DELIVERY_REPOSITORY == github.repository &&
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/publish-approve ') &&
+      github.event.comment.user.type == 'User' &&
+      github.event.comment.user.login == github.repository_owner
+    # Job-level (applies only after `if:` passed): other people's comments can
+    # never queue here and displace an approval run.
+    concurrency:
+      group: delivery-approve-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: delivery
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+    steps:
+      - name: Check out the default branch (trusted code only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+
+      # No dependency install: the script uses only Node built-ins.
+      - name: Validate approval, record it, merge at the SHA if CI passed
+        run: node scripts/delivery/run.ts approve
+        env:
+          DELIVERY_REPOSITORY: ${{ vars.DELIVERY_REPOSITORY }}
+          DELIVERY_APPROVERS: ${{ vars.DELIVERY_APPROVERS }}
+          DELIVERY_APP_ID: ${{ vars.DELIVERY_APP_ID }}
+          DELIVERY_APP_PRIVATE_KEY: ${{ secrets.DELIVERY_APP_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+  # Read-only diagnosis of the gate above: prints only true/false per condition
+  # and GitHub-controlled values (ref, association, account type). No secrets,
+  # no environment, no checkout, no token permissions, no comment text.
+  diagnose:
+    name: Diagnose approval gate (no secrets)
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/publish-approve')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Report each gate condition
+        env:
+          ACTIVATED: ${{ vars.DELIVERY_REPOSITORY == github.repository }}
+          REF: ${{ github.ref }}
+          REF_IS_DEFAULT: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+          IS_PULL_REQUEST: ${{ github.event.issue.pull_request != null }}
+          PREFIX_OK: ${{ startsWith(github.event.comment.body, '/publish-approve ') }}
+          ASSOCIATION: ${{ github.event.comment.author_association }}
+          ASSOCIATION_IS_WRITE: ${{ contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) }}
+          AUTHOR_TYPE: ${{ github.event.comment.user.type }}
+          AUTHOR_IS_OWNER: ${{ github.event.comment.user.login == github.repository_owner }}
+        run: |
+          {
+            echo "### Approval gate"
+            echo "- activated: $ACTIVATED"
+            echo "- git ref $REF (default branch: $REF_IS_DEFAULT)"
+            echo "- pull request: $IS_PULL_REQUEST"
+            echo "- command prefix: $PREFIX_OK"
+            echo "- author_association: $ASSOCIATION (write association: $ASSOCIATION_IS_WRITE)"
+            echo "- author type: $AUTHOR_TYPE, is repository owner: $AUTHOR_IS_OWNER"
+          } | tee -a "$GITHUB_STEP_SUMMARY"

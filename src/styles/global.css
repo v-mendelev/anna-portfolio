@@ -2,13 +2,12 @@
 
 /*
  * Design tokens.
- * Components must use tokens (bg-surface, text-cine-screen, font-ed-serif, ...)
- * instead of raw colours so a theme can be swapped in one place.
+ * Components must use tokens (bg-paper, text-volt, font-kadr, ...) instead of
+ * raw colours so the theme can be changed in one place.
  *
- * Base tokens: neutral starter theme (chooser page, 404).
- * Concept tokens: one namespace per design demo (cine-, ed-, cr-). Font
- * families are self-hosted (@fontsource-variable/*) and imported only by the
- * page that uses them.
+ * Base tokens: neutral starter theme (reusable defaults).
+ * Site tokens: the KADR identity below. Fonts are self-hosted
+ * (@fontsource-variable/onest) and declared per page via FontFaces.
  */
 @theme {
   /* Base (starter) */
@@ -17,7 +16,7 @@
   --color-ink: #1c1917;
   --color-ink-muted: #57534e;
   --color-line: #e7e5e4;
-  --color-accent: #b45309;
+  --color-accent: #1a2bff;
   --color-accent-ink: #ffffff;
 
   --font-sans:
@@ -26,36 +25,22 @@
   --container-page: 72rem;
   --container-wide: 90rem;
 
-  /* A. Cinematic: the interface is a dark screening room; colour lives in the footage */
-  --color-cine-void: #000000;
-  --color-cine-house: #16140f;
-  --color-cine-line: #2e2a24;
-  --color-cine-screen: #ece8e1;
-  --color-cine-dim: #a29b90;
-  --font-cine-display: 'Cormorant Variable', 'Cormorant Variable Fallback', serif;
-  --font-cine-text: 'Commissioner Variable', 'Commissioner Variable Fallback', sans-serif;
+  /*
+   * Site identity (the KADR design): white paper, ONE saturated accent —
+   * electric blue — for headings, frames and primary actions, and black for
+   * running text and descriptions.
+   * Contrast on white: volt 7.41:1, volt-deep 12.39:1, pitch 21:1 (all AA for
+   * any text size); white on volt 7.41:1. volt-tint is a fill only
+   * (1.21:1 on white): never text, never a border that must be seen.
+   */
+  --color-paper: #ffffff;
+  --color-volt: #1a2bff;
+  --color-volt-deep: #0b16a8;
+  --color-volt-tint: #e6e8ff;
+  --color-pitch: #000000;
 
-  /* B. Editorial: a contemporary travel atlas on cool uncoated paper */
-  --color-ed-paper: #f5f6f3;
-  --color-ed-tint: #e8ebe6;
-  --color-ed-line: #cfd4ce;
-  --color-ed-ink: #1b1d1c;
-  --color-ed-muted: #565c59;
-  --color-ed-water: #2a4f7a;
-  --font-ed-serif: 'Literata Variable', 'Literata Variable Fallback', serif;
-  --font-ed-sans: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
-
-  /* C. Creative: montage poster printed on warm ivory.
-     Contrast-safe text pairs: plum on ivory/paper (12.9+), plum on sage (6.4),
-     plum on coral (4.9) and coral on plum. Never coral/sage text on ivory,
-     never ivory text on coral/sage. */
-  --color-cr-ivory: #f6f0e8;
-  --color-cr-paper: #fffaf4;
-  --color-cr-coral: #ec7056;
-  --color-cr-plum: #302536;
-  --color-cr-sage: #a5af99;
-  --font-cr-display: 'Unbounded Variable', 'Unbounded Variable Fallback', sans-serif;
-  --font-cr-text: 'Golos Text Variable', 'Golos Text Variable Fallback', sans-serif;
+  /* One family for display and text: Onest (see src/site/fonts.ts). */
+  --font-kadr: 'Onest Variable', 'Onest Variable Fallback', sans-serif;
 }
 
 @layer base {

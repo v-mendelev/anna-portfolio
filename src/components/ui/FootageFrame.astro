@@ -34,6 +34,17 @@ export interface Props {
   eager?: boolean;
   /** Placeholder horizon: "hard" reads as a scene, "soft" sits quietly behind text. */
   horizon?: 'hard' | 'soft';
+  /**
+   * Placeholder painting. "scene" paints a sky/horizon stand-in; "none" paints
+   * nothing, so a concept can draw its own slate (via classes and the slot)
+   * while the frame keeps its ratio, accessible description and label.
+   */
+  paint?: 'scene' | 'none';
+  /**
+   * Render a real video as a player (controls, sound, no loop) instead of a
+   * silent looping clip. Use for showreels and project videos.
+   */
+  player?: boolean;
 }
 
 const {
@@ -49,6 +60,8 @@ const {
   eager = false,
   tag = true,
   horizon = 'hard',
+  paint = 'scene',
+  player = false,
 } = Astro.props;
 
 const style = [
@@ -68,7 +81,17 @@ const style = [
   style={style}
   data-footage
 >
-  {video ? (
+  {video && player ? (
+    <video
+      class="absolute inset-0 h-full w-full bg-black object-contain"
+      src={withBase(video)}
+      poster={poster ? withBase(poster) : undefined}
+      controls
+      playsinline
+      preload="metadata"
+      aria-label={description}
+    />
+  ) : video ? (
     <video
       class="absolute inset-0 h-full w-full object-cover"
       src={withBase(video)}
@@ -89,7 +112,11 @@ const style = [
     />
   ) : (
     <div
-      class:list={['footage-paint absolute inset-0', horizon === 'soft' && 'footage-paint--soft']}
+      class:list={[
+        'absolute inset-0',
+        paint === 'scene' && 'footage-paint',
+        paint === 'scene' && horizon === 'soft' && 'footage-paint--soft',
+      ]}
       role="img"
       aria-label={description}
     />

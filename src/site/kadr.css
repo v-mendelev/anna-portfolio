@@ -1,0 +1,267 @@
+/*
+ * KADR ("кадр", the frame) — the site's visual language.
+ * The camera's framing aids are the layout: rule-of-thirds guides, viewfinder
+ * corner marks and safe-area margins. White paper; electric blue for headings,
+ * frames and primary actions; black for running text and descriptions.
+ * Colours and fonts come from tokens in src/styles/global.css.
+ */
+
+html:has(.kadr) {
+  scrollbar-color: var(--color-volt) var(--color-paper);
+}
+html[data-menu-open] {
+  overflow: hidden;
+}
+
+/* Blue marks what matters: the name, headings, frames and actions. */
+.kadr-name,
+.kadr-h2,
+.kadr h3,
+.kadr dt,
+.kadr-brand,
+.vf,
+.kadr-frame-no,
+.kadr-btn,
+.kadr-filter[aria-pressed='true'] {
+  color: var(--color-volt);
+}
+.kadr-btn--solid,
+.kadr-btn:hover {
+  color: var(--color-paper);
+}
+.kadr :focus-visible {
+  outline: 3px solid var(--color-volt);
+  outline-offset: 3px;
+}
+.kadr ::selection {
+  background: var(--color-volt);
+  color: var(--color-paper);
+}
+
+/* Safe-area margins: the layout's outer frame is the device's own. */
+.kadr-wrap {
+  margin-inline: auto;
+  max-width: var(--container-wide);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+@media (min-width: 64rem) {
+  .kadr-wrap {
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
+}
+
+/* In the components layer so responsive utilities (lg:hidden) still win. */
+@layer components {
+  .kadr-tap {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+  }
+}
+.kadr-link {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.35em;
+  transition: text-decoration-color 0.2s ease-out;
+}
+.kadr-link:hover {
+  color: var(--color-volt);
+  text-decoration-color: currentColor;
+}
+
+/* The name fills the top third: two lines of one heavy word each. */
+.kadr-name {
+  font-size: clamp(2.5rem, 14.3vw, 13rem);
+  font-weight: 900;
+  line-height: 0.84;
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+.kadr-h2 {
+  font-size: clamp(2.75rem, 11vw, 8rem);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+@media (min-width: 64rem) {
+  .kadr-h2 {
+    font-size: min(9.4vw, 7.5rem);
+  }
+}
+.kadr-h2--xl {
+  font-size: clamp(2.5rem, 10.4vw, 11rem);
+}
+
+/* Rule-of-thirds guides, drawn from the same 12-column grid the content uses:
+   verticals run down the gutters before columns 5 and 9, which is where the
+   name and the frame start. Desktop only; on phones they would cut through text. */
+.kadr-hero .kadr-wrap {
+  --gap: 1.5rem;
+  --col: calc((100% - 11 * var(--gap)) / 12);
+  --third: calc(4 * var(--col) + 4 * var(--gap));
+}
+.kadr-guides {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .kadr-guides {
+    position: absolute;
+    inset: 0 max(2rem, env(safe-area-inset-right)) 0 max(2rem, env(safe-area-inset-left));
+    display: block;
+    pointer-events: none;
+    --g-col: calc((100% - 11 * 1.5rem) / 12);
+    background:
+      linear-gradient(var(--color-volt-tint), var(--color-volt-tint))
+        calc(4 * var(--g-col) + 3.5 * 1.5rem) 0 / 2px 100% no-repeat,
+      linear-gradient(var(--color-volt-tint), var(--color-volt-tint))
+        calc(8 * var(--g-col) + 7.5 * 1.5rem) 0 / 2px 100% no-repeat,
+      linear-gradient(var(--color-volt-tint), var(--color-volt-tint)) 0 33.333% / 100% 2px no-repeat,
+      linear-gradient(var(--color-volt-tint), var(--color-volt-tint)) 0 66.666% / 100% 2px no-repeat;
+  }
+}
+
+/* A slate: the empty frame a placeholder sits in until real footage exists. */
+.kadr-slate {
+  background: var(--color-volt-tint);
+}
+.kadr-frame-no {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.6rem;
+  z-index: 1;
+  font-size: 0.875rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* Viewfinder corner marks around a frame. Over a link or a player they
+   tighten ("pull focus") when pointed at or focused. */
+.vf {
+  --vf-len: clamp(0.9rem, 2.5vw, 1.5rem);
+  --vf-w: 3px;
+  position: absolute;
+  inset: -0.375rem;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(currentColor, currentColor) left top / var(--vf-len) var(--vf-w) no-repeat,
+    linear-gradient(currentColor, currentColor) left top / var(--vf-w) var(--vf-len) no-repeat,
+    linear-gradient(currentColor, currentColor) right top / var(--vf-len) var(--vf-w) no-repeat,
+    linear-gradient(currentColor, currentColor) right top / var(--vf-w) var(--vf-len) no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / var(--vf-len) var(--vf-w) no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / var(--vf-w) var(--vf-len) no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / var(--vf-len) var(--vf-w) no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / var(--vf-w) var(--vf-len) no-repeat;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vf--lg {
+  --vf-len: clamp(1.5rem, 5vw, 3.5rem);
+  --vf-w: 4px;
+  inset: 0;
+}
+.kadr-frame:has(video:hover, video:focus-visible, a:hover, a:focus-visible) > .vf {
+  transform: scale(0.965);
+}
+
+.kadr-btn {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 2px solid var(--color-volt);
+  padding: 0 1.25rem;
+  font-weight: 800;
+  transition:
+    background-color 0.2s ease-out,
+    border-color 0.2s ease-out,
+    color 0.2s ease-out;
+}
+.kadr-btn:hover,
+.kadr-btn--solid {
+  background: var(--color-volt);
+}
+.kadr-btn--solid:hover {
+  background: var(--color-volt-deep);
+  border-color: var(--color-volt-deep);
+}
+
+/* Filters are words; the active one turns blue inside viewfinder marks. */
+.kadr-filter {
+  position: relative;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0 0.85rem;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.kadr-filter:hover {
+  color: var(--color-volt);
+}
+.kadr-filter[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  inset: 0.2rem 0;
+  --len: 0.6rem;
+  background:
+    linear-gradient(currentColor, currentColor) left top / var(--len) 2px no-repeat,
+    linear-gradient(currentColor, currentColor) left top / 2px var(--len) no-repeat,
+    linear-gradient(currentColor, currentColor) right top / var(--len) 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right top / 2px var(--len) no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / var(--len) 2px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 2px var(--len) no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / var(--len) 2px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 2px var(--len) no-repeat;
+}
+
+/*
+ * Service labels on a project, circled by hand in blue: an open, overshooting
+ * pen loop (an inline SVG mask, no request) around black text. The loop is a
+ * real element (not ::before) so tests can measure that it never overlaps
+ * another label or leaves the card; the list's padding and gaps reserve the
+ * room the loop overshoots into.
+ */
+.kadr-marks {
+  /* The most a loop reaches past its label sideways (see .kadr-mark-loop):
+     the padding and the gap reserve exactly that room. */
+  --loop-x: 0.85em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.95em calc(2 * var(--loop-x) + 0.1em);
+  padding: 0.5em var(--loop-x);
+  font-size: 0.9375rem;
+}
+.kadr-mark {
+  position: relative;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+/* A stadium drawn in one stroke with an overshooting tail. Its round ends
+   grow with the label (10% of its width, capped), so even a long word sits
+   inside the straight part of the stroke and no letter touches the line. */
+.kadr-mark-loop {
+  position: absolute;
+  top: -0.38em;
+  bottom: -0.32em;
+  left: calc(-0.3em - min(10%, 0.55em));
+  right: calc(-0.3em - min(10%, 0.55em));
+  background: var(--color-volt);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 60' preserveAspectRatio='none'%3E%3Cpath d='M150 5H30C9 5 3 17 3 30s7 25 27 25h142c20 0 25-12 25-25S190 6 168 6l-46 3' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+    center / 100% 100% no-repeat;
+  rotate: -1deg;
+  pointer-events: none;
+}
+.kadr-mark:nth-child(2n) .kadr-mark-loop {
+  rotate: 0.8deg;
+  scale: -1 1;
+}

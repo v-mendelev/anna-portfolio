@@ -1,0 +1,26 @@
+---
+/** Services: one row per service — blue title, black summary and deliverables. */
+import { content } from '../content';
+
+const { services } = content;
+---
+
+<section id="services" class="border-t-2 border-volt">
+  <div class="kadr-wrap py-16 lg:py-24">
+    <h2 class="kadr-h2">Услуги</h2>
+    <p class="mt-5 max-w-[30em] text-lg font-medium">
+      Можно заказать всё вместе или одну часть работы.
+    </p>
+    <dl class="mt-12">
+      {services.map((s) => (
+        <div class="grid gap-x-6 gap-y-3 border-t-2 border-volt py-7 lg:grid-cols-12">
+          <dt class="text-[clamp(1.75rem,7vw,3.25rem)] leading-[0.95] font-black tracking-[-0.035em] lg:col-span-5">
+            {s.displayTitle ?? s.title}
+          </dt>
+          <dd class="text-lg leading-snug font-semibold lg:col-span-4">{s.summary}</dd>
+          <dd class="text-sm leading-relaxed font-medium lg:col-span-3">{s.includes.join(', ')}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</section>

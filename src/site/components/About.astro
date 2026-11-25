@@ -1,0 +1,33 @@
+---
+/** About Anna: portrait in viewfinder marks and a short bio. */
+import FootageFrame from '../../components/ui/FootageFrame.astro';
+import PlaceholderTag from '../../components/ui/PlaceholderTag.astro';
+import { content } from '../content';
+
+const { person } = content;
+---
+
+<section id="about" class="border-t-2 border-volt">
+  <div class="kadr-wrap grid items-end gap-x-6 gap-y-8 py-16 lg:grid-cols-12 lg:py-24">
+    <div class="kadr-frame relative w-2/3 lg:col-span-4 lg:w-auto">
+      <span class="vf" aria-hidden="true"></span>
+      <FootageFrame
+        tone={{ from: '#0b16a8', to: '#e6e8ff' }}
+        paint="none"
+        ratio="4 / 5"
+        class="kadr-slate"
+        description={`Портрет: ${person.name}`}
+        poster={person.portrait}
+        placeholderDetail="фото Анны"
+        tagClass="absolute bottom-2 left-2 bg-paper px-1.5 py-0.5 text-xs font-semibold"
+      />
+    </div>
+    <div class="lg:col-span-7 lg:col-start-6">
+      <h2 class="kadr-h2">Обо мне</h2>
+      <p class="mt-6 max-w-[31em] text-xl leading-relaxed font-medium">{person.bio}</p>
+      {person.placeholderBio && (
+        <PlaceholderTag detail="текст об Анне" class="mt-4 text-sm font-semibold" />
+      )}
+    </div>
+  </div>
+</section>

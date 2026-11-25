@@ -1,0 +1,22 @@
+---
+/**
+ * Page shell for every page of Anna's site: the shared BaseLayout plus the
+ * KADR theme (white paper, black text), its stylesheet and the site font.
+ */
+import BaseLayout, { type Props as BaseProps } from '../../layouts/BaseLayout.astro';
+import FontFaces from '../../components/ui/FontFaces.astro';
+import { fontSets } from '../fonts';
+import '../kadr.css';
+
+export type Props = Omit<BaseProps, 'bodyClass' | 'skipLinkClass'>;
+---
+
+<BaseLayout
+  {...Astro.props}
+  bodyClass="bg-paper font-kadr text-pitch"
+  skipLinkClass="bg-volt text-paper focus-visible:outline-volt"
+>
+  <FontFaces slot="head" set={fontSets.site} />
+  <slot name="head" slot="head" />
+  <slot />
+</BaseLayout>

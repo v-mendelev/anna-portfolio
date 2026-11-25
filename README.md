@@ -3,7 +3,7 @@
 Сайт-портфолио видеографа. Построен на переиспользуемом стартере
 **Astro + TypeScript (strict) + Tailwind CSS 4** со статической сборкой.
 
-- Демо (GitHub Pages): https://v-mendelev.github.io/anna-portfolio/design/
+- Сайт (GitHub Pages): https://v-mendelev.github.io/anna-portfolio/
 - Ветки: `dev` — разработка/staging, `main` — опубликованная демо-версия.
 
 ## Требования
@@ -22,13 +22,13 @@ git clone git@github-personal:v-mendelev/anna-portfolio.git
 cd anna-portfolio
 pnpm install
 pnpm test:e2e:install   # один раз: браузеры Playwright (Chromium + WebKit)
-pnpm dev                # http://127.0.0.1:4321/design/
+pnpm dev                # http://127.0.0.1:4321/
 ```
 
 `github-personal` — SSH Host alias для личного GitHub-ключа (см. DEPLOYMENT.md).
 Обычный `git@github.com:...` тоже работает, если ваш ключ по умолчанию подходит.
 
-## Просмотр дизайн-концепций локально
+## Просмотр сайта локально
 
 ```powershell
 pnpm dev                      # быстрый режим разработки
@@ -36,10 +36,9 @@ pnpm dev                      # быстрый режим разработки
 pnpm build; pnpm preview
 ```
 
-- Выбор концепции: http://127.0.0.1:4321/design/
-- Кадр: http://127.0.0.1:4321/design/cinematic/
-- Склейка: http://127.0.0.1:4321/design/editorial/
-- Рапид: http://127.0.0.1:4321/design/creative/
+Сайт — одна страница: http://127.0.0.1:4321/ (дизайн «Кадр»). Старые ссылки на
+концепции (`/design/`, `/design/cinematic/`, `/design/editorial/`,
+`/design/creative/`) перенаправляют на главную.
 
 Dev- и preview-сервер слушают `127.0.0.1:4321` (`server.host` в `astro.config.ts`):
 на Windows `localhost` разрешается в `::1`, и без этого сервер был доступен только по IPv6.
@@ -48,7 +47,29 @@ Dev- и preview-сервер слушают `127.0.0.1:4321` (`server.host` в `
 E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm test:e2e`.
 
 Мобильный вид — DevTools (F12 → Toggle device toolbar) или `pnpm screenshots`
-(см. TESTING.md). Все работы, отзывы и контакты пока заглушки с меткой «Заглушка».
+(см. TESTING.md). Работы, шоурил, фото, текст «Обо мне» и контакты пока заглушки
+с меткой «Заглушка».
+
+## Замена контента
+
+Всё содержимое — в `src/site/content.ts`; компоненты в `src/site/components/`
+только раскладывают его. Медиа кладутся в `public/media/` и указываются путём
+`/media/<файл>`.
+
+| Что прислала Анна       | Где заменить (`content.ts`)                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| Шоурил (MP4) и обложка  | `showreel.video`, `showreel.poster`, `placeholder: false`                                 |
+| Кадр для первого экрана | `hero.still.poster`                                                                       |
+| Работы                  | `projects[]`: `title`, `category`, `roles`, `video`/`poster`, `placeholder: false`        |
+| Портрет и текст о себе  | `person.portrait`, `person.bio`, `placeholderBio: false`                                  |
+| Контакты                | `contacts[]`: `href` (`https://t.me/…`, `mailto:`, `tel:`), `value`, `placeholder: false` |
+| Отзывы (если появятся)  | `testimonials[]` — только реальные, с разрешения автора (блок ещё не выводится)           |
+
+Слот с `video` показывает плеер, только с `poster` — картинку, без файла — метку
+«Заглушка» (пустого плеера и «мёртвых» кнопок нет). Когда последняя заглушка
+уйдёт, пояснение над работами и примечание в подвале исчезнут сами. Название,
+описание и превью для соцсетей — `src/site/site.config.ts`; после правки текста
+превью — `pnpm brand:images`.
 
 ## Команды
 
@@ -63,9 +84,10 @@ E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm
 | `pnpm lint` / `lint:fix`       | ESLint                                                         |
 | `pnpm format` / `format:check` | Prettier                                                       |
 | `pnpm test`                    | Unit-тесты (Vitest)                                            |
-| `pnpm test:e2e`                | Playwright: smoke, навигация, концепции, шрифты, адаптивность  |
+| `pnpm test:e2e`                | Playwright: smoke, навигация, главная, шрифты, адаптивность    |
 | `pnpm fonts:metrics`           | Первичный расчёт fallback-метрик шрифтов (см. ARCHITECTURE.md) |
-| `pnpm screenshots`             | Скриншоты всех демо: Chromium + WebKit, desktop + mobile       |
+| `pnpm screenshots`             | Скриншоты страниц: Chromium + WebKit, desktop + mobile         |
+| `pnpm brand:images`            | Пересобрать og.png, favicon.ico и apple-touch-icon из токенов  |
 | `pnpm test:smoke`              | Быстрый smoke в Chromium                                       |
 | `pnpm test:visual`             | Визуальная регрессия (opt-in, см. TESTING.md)                  |
 | `pnpm check`                   | typecheck + lint + format + unit + build                       |
@@ -75,15 +97,15 @@ E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm
 
 ```
 src/
-  site/          # ← ВСЁ проектно-специфичное (контент, шрифты, URL, список демо)
+  site/          # ← ВСЁ проектно-специфичное: контент, конфиг, шрифты, компоненты сайта (KADR)
   lib/           # переиспользуемая логика (paths, deploy, fonts, portfolio, ui, integrations)
   config/        # feature flags из PUBLIC_* переменных
-  components/    # ui/ — базовые компоненты, demo/ — три дизайн-концепции
-  layouts/       # BaseLayout (meta, robots, canonical, skip-link)
+  components/    # ui/ — базовые переиспользуемые компоненты
+  layouts/       # BaseLayout (meta, Open Graph, robots, canonical, skip-link), RedirectLayout
   styles/        # global.css: Tailwind 4 + дизайн-токены (@theme)
-  pages/         # маршруты: /design/, /design/{cinematic,editorial,creative}/
-tests/e2e/       # Playwright: smoke, навигация, концепции, шрифты, адаптивность
-scripts/         # dev-утилиты (расчёт fallback-метрик шрифтов); delivery/ — CI-скрипт конвейера доставки
+  pages/         # маршруты: / (сайт), 404, старые /design/... → редирект на /
+tests/e2e/       # Playwright: smoke, навигация, главная, шрифты, адаптивность
+scripts/         # dev-утилиты (fallback-метрики шрифтов, картинки бренда); delivery/ — CI-скрипт конвейера доставки
 tests/visual/    # визуальная регрессия (opt-in)
 deploy/timeweb/  # nginx-конфигурация для будущего Timeweb Cloud
 .github/         # CI/CD, rulesets, dependabot, шаблон PR

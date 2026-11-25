@@ -43,7 +43,7 @@ Workflow `.github/workflows/deploy-pages.yml`:
    маршрутах из `tests/e2e/routes.ts` и на всех CSS/JS/шрифтах; результат — commit
    status `delivery/live` (с URL сайта) и summary запуска.
 
-URL: https://v-mendelev.github.io/anna-portfolio/ (→ `/design/`).
+URL: https://v-mendelev.github.io/anna-portfolio/ (старые `/design/…` перенаправляют на главную).
 
 ### Base path
 

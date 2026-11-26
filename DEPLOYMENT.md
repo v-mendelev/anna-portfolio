@@ -45,6 +45,10 @@ Workflow `.github/workflows/deploy-pages.yml`:
 
 URL: https://v-mendelev.github.io/anna-portfolio/ (старые `/design/…` перенаправляют на главную).
 
+Какой коммит сейчас на сайте — `build-info.json` (его пишет шаг `build`):
+`curl -s https://v-mendelev.github.io/anna-portfolio/build-info.json` →
+`{"sha":"<полный SHA>","run":"<id запуска workflow>"}`.
+
 ### Base path
 
 Сайт проекта на Pages живёт в `/<repo>/`. `base` берётся из `configure-pages`,

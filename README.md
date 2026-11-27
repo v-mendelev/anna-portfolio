@@ -53,8 +53,10 @@ E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm
 ## Замена контента
 
 Всё содержимое — в `src/site/content.ts`; компоненты в `src/site/components/`
-только раскладывают его. Медиа кладутся в `public/media/` и указываются путём
-`/media/<файл>`.
+только раскладывают его. Медиа указываются **ключом** относительно корня медиа
+(`work/fashion/video.mp4`): это `public/media/` или CDN из
+`PUBLIC_MEDIA_BASE_URL`. Веб-версии собирает `pnpm media:build` из оригиналов
+в `media-src/` (в Git не попадают) — подробно в [docs/MEDIA.md](docs/MEDIA.md).
 
 | Что прислала Анна       | Где заменить (`content.ts`)                                                               |
 | ----------------------- | ----------------------------------------------------------------------------------------- |
@@ -80,6 +82,7 @@ E2E запускайте на другом порту: `$env:E2E_PORT=4400; pnpm
 | `pnpm build:pages`             | Сборка для GitHub Pages (`base = /anna-portfolio`)             |
 | `pnpm build:timeweb`           | Сборка для Timeweb Cloud (`base = /`, `SITE_URL` из окружения) |
 | `pnpm preview`                 | Просмотр собранного `dist/`                                    |
+| `pnpm media:build`             | Веб-версии видео и постеров из `media-src/` (нужен ffmpeg)     |
 | `pnpm typecheck`               | `astro check` (TypeScript strict + .astro)                     |
 | `pnpm lint` / `lint:fix`       | ESLint                                                         |
 | `pnpm format` / `format:check` | Prettier                                                       |

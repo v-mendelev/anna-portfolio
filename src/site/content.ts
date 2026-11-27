@@ -30,7 +30,7 @@ export const content: PortfolioContent = {
   hero: {
     lead: 'Видеограф. Снимаю, монтирую и озвучиваю видео: от съёмки до готового ролика с голосом.',
     next: 'Новое направление — видео о путешествиях.',
-    // A frame from the showreel (0:04.5), cropped to 16:9.
+    // A frame from the podcast intro (0:32), Anna's editing work.
     still: { poster: 'hero/still.webp', posterAvif: 'hero/still.avif' },
   },
 

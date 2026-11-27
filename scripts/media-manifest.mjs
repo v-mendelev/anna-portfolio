@@ -5,7 +5,9 @@
  * docs/MEDIA.md). `key` is the storage key under the media root — the same
  * in public/media/ (demo) and in an S3 bucket / CDN (production).
  * `poster` is the second of the frame used as the poster: picked by hand so
- * it is not a transition, a title card or a blank frame.
+ * it is not a transition, a title card or a blank frame — and shows only
+ * adults, and only footage that is Anna's own work (the showreel opens with
+ * shots that look like stock; those are never used as stills).
  *
  * Folder names: Windows cannot keep the trailing space of the Yandex Disk
  * folder "Горизонтальные видео ", so it is stored without it.
@@ -13,14 +15,16 @@
 export const showreel = {
   key: 'showreel',
   source: 'Шоурил.mp4',
-  poster: 15,
+  // Studio interview + the «Институт семьи» shoot (0:11.6).
+  poster: 11.6,
 };
 
 /** Still for the hero frame (16:9 crop of a horizontal source). */
 export const hero = {
   key: 'hero',
-  source: 'Шоурил.mp4',
-  at: 4.5,
+  // Podcast intro, Anna's editing work (0:32).
+  source: 'Горизонтальные видео/Подкаст монтаж (интро).mp4',
+  at: 32,
 };
 
 export const work = [

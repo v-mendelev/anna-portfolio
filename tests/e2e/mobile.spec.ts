@@ -55,6 +55,9 @@ test.describe('@smoke home on phones', () => {
   });
 
   test('menu links land each section heading below the header', async ({ page }) => {
+    // 3 widths × 4 sections of real navigation over a long page with ten players:
+    // in WebKit this runs close to the default 30 s, so give it the slow budget.
+    test.slow();
     for (const width of [320, 360, 430]) {
       await page.setViewportSize({ width, height: PHONE.height });
       await openHome(page);
@@ -83,19 +86,17 @@ test.describe('@smoke home on phones', () => {
     }
   });
 
-  test('every placeholder project is visibly marked as invented', async ({ page }) => {
+  test('real work is flagged as not yet confirmed, and frames fit the screen', async ({ page }) => {
     await openHome(page);
-    const note = page.locator('#work [data-demo-note]');
+    const note = page.locator('#work [data-work-note]');
     await expect(note).toBeVisible();
-    await expect(note).toContainText('вымышлены');
-    await expect(note).toContainText('не работы Анны');
-    const projects = page.locator('#work [data-category]');
-    const count = await projects.count();
-    expect(count).toBe(6);
-    for (let i = 0; i < count; i++) {
-      const label = projects.nth(i).locator('[data-placeholder]:visible');
-      await expect(label.first()).toBeVisible();
-      await expect(label.first()).toContainText('вымышленный проект');
+    await expect(note).toContainText('работы Анны');
+    await expect(note).toContainText('уточнит');
+    const width = page.viewportSize()?.width ?? 0;
+    for (const frame of await page.locator('#work [data-footage]').all()) {
+      const box = await frame.boundingBox();
+      // Sized by width at its own ratio: never wider than the phone.
+      expect(box?.width ?? 0).toBeLessThanOrEqual(width);
     }
   });
 
@@ -253,15 +254,24 @@ test.describe('@smoke positioning and first screen', () => {
 test.describe('@smoke phone layout', () => {
   test.use({ viewport: PHONE, hasTouch: true });
 
-  test('the portfolio is one frame wide on phones, frames keep 16:9', async ({ page }) => {
+  test('on phones vertical work sits two to a row at 9:16, horizontal work full width', async ({
+    page,
+  }) => {
     await openHome(page);
     const sheet = page.locator('#work [data-project-list]');
-    const sheetBox = await sheet.boundingBox();
+    const sheetWidth = (await sheet.boundingBox())?.width ?? 0;
     for (const card of await sheet.locator('[data-category]').all()) {
-      const box = await card.boundingBox();
-      expect(box && sheetBox && Math.abs(box.width - sheetBox.width) < 1).toBe(true);
+      const width = (await card.boundingBox())?.width ?? 0;
       const frame = await card.locator('[data-footage]').boundingBox();
-      expect(frame && Math.abs(frame.width / frame.height - 16 / 9) < 0.02).toBe(true);
+      const ratio = (frame?.width ?? 0) / (frame?.height ?? 1);
+      if ((await card.getAttribute('data-orientation')) === 'vertical') {
+        expect(width).toBeLessThan(sheetWidth / 2);
+        expect(width).toBeGreaterThan(sheetWidth / 2 - 16);
+        expect(Math.abs(ratio - 9 / 16)).toBeLessThan(0.02);
+      } else {
+        expect(Math.abs(width - sheetWidth)).toBeLessThan(1);
+        expect(ratio).toBeGreaterThanOrEqual(1.59);
+      }
     }
   });
 

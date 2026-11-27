@@ -33,6 +33,14 @@ html[data-menu-open] {
   outline: 3px solid var(--color-volt);
   outline-offset: 3px;
 }
+/* Keyboard focus inside a native player lands on its own (shadow) controls,
+   which :focus-visible on <video> does not see. Ring the player from inside:
+   the frame clips anything drawn outside it. */
+.kadr video:focus-visible,
+.kadr video:focus-within {
+  outline: 3px solid var(--color-volt);
+  outline-offset: -3px;
+}
 .kadr ::selection {
   background: var(--color-volt);
   color: var(--color-paper);
@@ -169,7 +177,7 @@ html[data-menu-open] {
   --vf-w: 4px;
   inset: 0;
 }
-.kadr-frame:has(video:hover, video:focus-visible, a:hover, a:focus-visible) > .vf {
+.kadr-frame:has(video:hover, video:focus-within, a:hover, a:focus-visible) > .vf {
   transform: scale(0.965);
 }
 

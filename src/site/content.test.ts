@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { SECTIONS, categoryLabel, content, serviceTitle } from './content';
+import { existsSync, statSync } from 'node:fs';
+import { SECTIONS, categoryLabel, content, roleTitle, serviceTitle } from './content';
 
 describe('portfolio content integrity', () => {
   const serviceIds = content.services.map((s) => s.id);
@@ -27,17 +28,27 @@ describe('portfolio content integrity', () => {
     expect(SECTIONS.map((s) => s.id)).toEqual(['showreel', 'work', 'services', 'about', 'contact']);
   });
 
-  it('references only known categories and services', () => {
+  it('references only known categories and roles', () => {
+    const roleIds = [...serviceIds, ...(content.roles ?? []).map((r) => r.id)];
     for (const project of content.projects) {
       expect(categoryIds).toContain(project.category);
-      for (const role of project.roles) expect(serviceIds).toContain(role);
+      for (const role of project.roles) expect(roleIds).toContain(role);
     }
   });
 
-  it('gives every project at least one role, without duplicates', () => {
+  it('never repeats a role, and leaves roles empty only on unconfirmed work', () => {
     for (const project of content.projects) {
-      expect(project.roles.length, project.id).toBeGreaterThan(0);
       expect(new Set(project.roles).size, project.id).toBe(project.roles.length);
+      if (project.roles.length === 0) expect(project.unconfirmed, project.id).toBe(true);
+    }
+  });
+
+  it('uses only categories that have projects', () => {
+    for (const c of content.categories) {
+      expect(
+        content.projects.some((p) => p.category === c.id),
+        c.id,
+      ).toBe(true);
     }
   });
 
@@ -63,28 +74,58 @@ describe('portfolio content integrity', () => {
     }
   });
 
-  it('has a placeholder showreel and bio until real material arrives', () => {
-    expect(content.showreel.video).toBeUndefined();
-    expect(content.showreel.placeholder).toBe(true);
+  it("shows Anna's real showreel; bio and contacts stay placeholders", () => {
+    expect(content.showreel.placeholder).toBe(false);
+    expect(content.showreel.video).toBeTruthy();
+    expect(content.showreel.poster).toBeTruthy();
     expect(content.person.placeholderBio).toBe(true);
+    expect(content.person.portrait).toBeUndefined();
   });
 
-  it('references media only inside /public (no third-party URLs)', () => {
-    const paths = [
-      content.showreel.video,
-      content.showreel.poster,
-      content.hero.still?.poster,
-      content.hero.still?.video,
-      content.person.portrait,
-      ...content.projects.flatMap((p) => [p.video, p.poster]),
-    ].filter((p): p is string => Boolean(p));
-    for (const path of paths) expect(path.startsWith('/') && !path.startsWith('//')).toBe(true);
+  const keys = [
+    content.showreel.video,
+    content.showreel.poster,
+    content.hero.still?.poster,
+    content.hero.still?.posterAvif,
+    content.hero.still?.video,
+    content.person.portrait,
+    ...content.projects.flatMap((p) => [p.video, p.poster, p.posterAvif]),
+  ].filter((p): p is string => Boolean(p));
+
+  it('references media by relative keys only (no third-party URLs)', () => {
+    for (const key of keys) {
+      expect(key, key).toMatch(/^[a-z0-9-]+(\/[a-z0-9-]+)*\.(mp4|webp|avif)$/);
+    }
+  });
+
+  it('every media key exists in public/media, within the demo size budget', () => {
+    let total = 0;
+    for (const key of keys) {
+      const file = `public/media/${key}`;
+      expect(existsSync(file), file).toBe(true);
+      const size = statSync(file).size;
+      // Per file: posters stay small, video previews ≤ 12 MB (GitHub Pages demo).
+      expect(size, file).toBeLessThan(key.endsWith('.mp4') ? 12_000_000 : 300_000);
+      total += size;
+    }
+    expect(total).toBeLessThan(90_000_000);
+  });
+
+  it('gives every real video a poster, an orientation and a duration', () => {
+    for (const p of content.projects.filter((x) => x.video)) {
+      expect(p.poster, p.id).toBeTruthy();
+      expect(p.orientation, p.id).toBeDefined();
+      expect(p.duration, p.id).toMatch(/^\d+:\d{2}$/);
+    }
   });
 
   it('resolves labels for services and categories', () => {
     expect(serviceTitle('voice')).toBe('Озвучка');
-    expect(categoryLabel('travel')).toBe('Путешествия');
+    expect(categoryLabel('events')).toBe('Мероприятия');
     expect(serviceTitle('unknown')).toBe('unknown');
+    expect(roleTitle('filming')).toBe('Съёмка');
+    expect(roleTitle('editing')).toBe('Монтаж');
+    expect(roleTitle('voice')).toBe('Озвучка');
   });
 });
 
@@ -101,9 +142,23 @@ describe('professional positioning', () => {
     expect(travelService?.summary).toMatch(/^Новое направление/);
   });
 
-  it('keeps travel a minority of the invented demo projects', () => {
-    const travel = content.projects.filter((p) => p.category === 'travel');
-    expect(travel.length).toBeLessThan(content.projects.length / 2);
-    expect(content.projects.every((p) => p.placeholder)).toBe(true);
+  it('claims no travel project until there is one', () => {
+    expect(content.projects.some((p) => p.category === 'travel')).toBe(false);
+  });
+
+  it('shows only real work, every detail Anna has not confirmed flagged', () => {
+    expect(content.projects.length).toBeGreaterThan(0);
+    for (const p of content.projects) {
+      expect(p.placeholder, p.id).toBe(false);
+      expect(p.video, p.id).toBeTruthy();
+      expect(p.unconfirmed, p.id).toBe(true);
+      // No client names or invented case-study text until Anna confirms them.
+      expect(p.description, p.id).toBeUndefined();
+    }
+  });
+
+  it('mixes vertical and horizontal work', () => {
+    const o = new Set(content.projects.map((p) => p.orientation));
+    expect(o).toEqual(new Set(['vertical', 'horizontal']));
   });
 });

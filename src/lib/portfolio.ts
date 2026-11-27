@@ -5,17 +5,23 @@
  * with `placeholder: true` so the site renders a visible label for it.
  * Never ship invented clients, achievements or reviews as if they were real.
  *
- * Media paths (`poster`, `video`) are paths inside `public/`, e.g.
- * "/media/showreel.mp4"; components resolve them with `withBase()`.
+ * Media fields (`poster`, `video`, `posterAvif`) are storage keys relative to
+ * the media root, e.g. "work/fashion/video.mp4"; components resolve them with
+ * `media()` from src/lib/media.ts (public/media/ or a CDN).
  */
 
 /** A still image or a video with an optional poster. Absent fields = not provided yet. */
 export interface Media {
-  /** Still image (or video poster) in /public. */
+  /** Still image or video poster (WebP), as a media key. */
   poster?: string;
-  /** Video file in /public (MP4/H.264 for the widest support). */
+  /** Same still in AVIF, offered first where the browser supports it. */
+  posterAvif?: string;
+  /** Video (MP4/H.264 + AAC for the widest support), as a media key. */
   video?: string;
 }
+
+/** How a video is framed: phone-first vertical or classic horizontal. */
+export type Orientation = 'vertical' | 'horizontal';
 
 export interface Service {
   id: string;
@@ -55,10 +61,31 @@ export interface Project extends Media {
   description?: string;
   /** Where it was filmed, if relevant. */
   place?: string;
-  /** What Anna did on the project (service ids). */
+  /**
+   * What Anna did on the project (role or service ids). Empty when not yet
+   * confirmed: the card then says so instead of guessing.
+   */
   roles: readonly string[];
-  tone: FrameTone;
+  /** Colours for the painted placeholder frame (placeholders only). */
+  tone?: FrameTone;
+  /** Video framing; default horizontal. */
+  orientation?: Orientation;
+  /** CSS aspect ratio when it differs from 9:16 / 16:9, e.g. "16 / 10". */
+  ratio?: string;
+  /** Running time as shown to visitors, e.g. "1:33". */
+  duration?: string;
+  /**
+   * Real work whose details (title, client, roles) Anna has not confirmed
+   * yet. Rendered with a visible note; never shown as a documented case.
+   */
+  unconfirmed?: boolean;
   placeholder: boolean;
+}
+
+/** A role on a project that is not one of the offered services (e.g. filming). */
+export interface ProjectRole {
+  id: string;
+  label: string;
 }
 
 export interface Testimonial {
@@ -105,6 +132,8 @@ export interface PortfolioContent {
   };
   services: readonly Service[];
   categories: readonly ProjectCategory[];
+  /** Role labels beyond the service titles (e.g. "Съёмка"). */
+  roles?: readonly ProjectRole[];
   projects: readonly Project[];
   /** Real reviews only (with the author's permission). Not rendered yet. */
   testimonials?: readonly Testimonial[];
@@ -140,6 +169,18 @@ export function mediaState(media: Media | undefined): 'video' | 'image' | 'place
   if (media?.video) return 'video';
   if (media?.poster) return 'image';
   return 'placeholder';
+}
+
+/** CSS aspect ratio of a project's frame. */
+export function frameRatio(p: Pick<Project, 'orientation' | 'ratio'>): string {
+  if (p.ratio) return p.ratio;
+  return p.orientation === 'vertical' ? '9 / 16' : '16 / 9';
+}
+
+/** "m:ss" running time from seconds (rounded to the nearest second). */
+export function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
 /** Contact channels that can actually be used (real link present). */

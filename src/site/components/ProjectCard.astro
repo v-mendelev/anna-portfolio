@@ -2,12 +2,14 @@
 /**
  * One project on the contact sheet: a frame in viewfinder marks (numbered by
  * its place on the sheet), the title, the category and what Anna did —
- * each service circled in blue. A project with a video plays in place.
+ * each role circled in blue. A project with a video plays in place, framed
+ * at its own ratio (vertical 9:16, horizontal 16:9) so nothing is cropped.
+ * Roles Anna has not confirmed are not guessed: the card says so.
  */
 import FootageFrame from '../../components/ui/FootageFrame.astro';
 import PlaceholderTag from '../../components/ui/PlaceholderTag.astro';
-import type { Project } from '../../lib/portfolio';
-import { DEMO_PROJECT_LABEL, categoryLabel, serviceTitle } from '../content';
+import { frameRatio, type Project } from '../../lib/portfolio';
+import { DEMO_PROJECT_LABEL, ROLES_PENDING, categoryLabel, roleTitle } from '../content';
 
 export interface Props {
   project: Project;
@@ -18,19 +20,24 @@ export interface Props {
 const { project: p, index } = Astro.props;
 const frameNo = String(index + 1).padStart(2, '0');
 const titleId = `project-${p.id}`;
-const meta = [categoryLabel(p.category), p.place].filter(Boolean).join(', ');
+const meta = [categoryLabel(p.category), p.place, p.duration].filter(Boolean).join(', ');
+const orientation = p.orientation ?? 'horizontal';
 ---
 
-<li data-category={p.category} class="kadr-cell">
+<li
+  data-category={p.category}
+  data-orientation={orientation}
+  class:list={['kadr-cell', orientation === 'horizontal' && 'col-span-2']}
+>
   <article aria-labelledby={titleId}>
     <div class="kadr-frame relative">
       <span class="vf" aria-hidden="true"></span>
       <FootageFrame
         tone={p.tone}
         paint="none"
-        ratio="16 / 9"
+        ratio={frameRatio(p)}
         class="kadr-slate"
-        description={`Кадр из проекта «${p.title}»`}
+        description={`Видео «${p.title}»`}
         video={p.video}
         poster={p.poster}
         placeholder={p.placeholder}
@@ -51,14 +58,20 @@ const meta = [categoryLabel(p.category), p.place].filter(Boolean).join(', ');
     </h3>
     <p class="mt-1 text-sm font-medium">{meta}</p>
     {p.description && <p class="mt-2 text-base leading-snug font-medium">{p.description}</p>}
-    <ul class="kadr-marks mt-2" aria-label="Что я делала в проекте">
-      {p.roles.map((role) => (
-        <li class="kadr-mark">
-          <span class="kadr-mark-loop" aria-hidden="true"></span>
-          {serviceTitle(role)}
-        </li>
-      ))}
-    </ul>
+    {p.roles.length > 0 ? (
+      <ul class="kadr-marks mt-2" aria-label="Что я делала в проекте">
+        {p.roles.map((role) => (
+          <li class="kadr-mark">
+            <span class="kadr-mark-loop" aria-hidden="true"></span>
+            {roleTitle(role)}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="mt-2 text-sm font-semibold" data-roles-pending>
+        {ROLES_PENDING}
+      </p>
+    )}
     {p.placeholder && (
       <PlaceholderTag detail={DEMO_PROJECT_LABEL} class="mt-1 block text-xs font-semibold" />
     )}

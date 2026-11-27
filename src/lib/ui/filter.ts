@@ -1,4 +1,5 @@
 import { ALL_CATEGORIES, filterProjects } from '../portfolio';
+import { pauseAll } from './playback';
 
 /**
  * Category filter for a list of items.
@@ -21,7 +22,11 @@ export function initFilters(root: ParentNode = document): void {
       for (const button of buttons) {
         button.setAttribute('aria-pressed', String(button.dataset.filter === category));
       }
-      for (const { el } of items) el.hidden = !visible.has(el);
+      for (const { el } of items) {
+        el.hidden = !visible.has(el);
+        // A filtered-out card must not keep playing out of sight.
+        if (el.hidden) pauseAll(el);
+      }
       if (status) {
         const template = status.dataset.template ?? '{n}';
         status.textContent = template.replace('{n}', String(visible.size));

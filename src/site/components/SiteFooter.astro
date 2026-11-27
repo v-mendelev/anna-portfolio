@@ -3,11 +3,18 @@
 import { content } from '../content';
 
 const { person, projects, showreel, contacts } = content;
+// Name exactly what is still a placeholder, nothing that is already real.
+const pendingParts = [
+  projects.some((p) => p.placeholder) && 'работы',
+  showreel.placeholder && 'шоурил',
+  !person.portrait && 'фото',
+  person.placeholderBio && 'текст о себе',
+  contacts.some((c) => c.placeholder) && 'контакты',
+].filter((part): part is string => Boolean(part));
 const pending =
-  person.placeholderBio ||
-  showreel.placeholder ||
-  projects.some((p) => p.placeholder) ||
-  contacts.some((c) => c.placeholder);
+  pendingParts.length > 0
+    ? `${pendingParts.slice(0, -1).join(', ')}${pendingParts.length > 1 ? ' и ' : ''}${pendingParts.at(-1) ?? ''}`
+    : '';
 const year = new Date().getFullYear();
 ---
 
@@ -16,9 +23,7 @@ const year = new Date().getFullYear();
     <p>
       © {year} {person.name}
     </p>
-    {pending && (
-      <p data-footer-note>Сайт наполняется: работы, шоурил, фото и контакты — заглушки.</p>
-    )}
+    {pending && <p data-footer-note>Сайт наполняется: {pending} — заглушки.</p>}
     <a href="#top" class="kadr-tap kadr-link -mr-3">
       Наверх
     </a>

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ALL_CATEGORIES,
   filterProjects,
+  formatDuration,
+  frameRatio,
   mediaState,
   usableContacts,
   usedCategories,
@@ -62,5 +64,30 @@ describe('usableContacts', () => {
       { id: 'youdo', href: 'https://youdo.com/' },
     ];
     expect(usableContacts(contacts).map((c) => c.id)).toEqual(['telegram', 'youdo']);
+  });
+});
+
+describe('frameRatio', () => {
+  it('frames vertical video 9:16 and everything else 16:9', () => {
+    expect(frameRatio({ orientation: 'vertical' })).toBe('9 / 16');
+    expect(frameRatio({ orientation: 'horizontal' })).toBe('16 / 9');
+    expect(frameRatio({})).toBe('16 / 9');
+  });
+
+  it('keeps an explicit ratio (e.g. a 16:10 source) so nothing is cropped', () => {
+    expect(frameRatio({ orientation: 'horizontal', ratio: '16 / 10' })).toBe('16 / 10');
+  });
+});
+
+describe('formatDuration', () => {
+  it('formats m:ss, rounding to whole seconds', () => {
+    expect(formatDuration(93.07)).toBe('1:33');
+    expect(formatDuration(25.56)).toBe('0:26');
+    expect(formatDuration(146.08)).toBe('2:26');
+    expect(formatDuration(59.6)).toBe('1:00');
+  });
+
+  it('never goes negative', () => {
+    expect(formatDuration(-3)).toBe('0:00');
   });
 });

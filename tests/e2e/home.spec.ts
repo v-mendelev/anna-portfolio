@@ -1,7 +1,7 @@
 import { expect, test } from './fixtures';
 import { SITE_FONTS, SITE_SECTIONS } from './routes';
 
-/** The home page: structure, honest placeholders, filters, actions, motion, metadata. */
+/** The home page: structure, real media, honest placeholders, filters, actions, motion, metadata. */
 test.describe('@smoke home page', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('');
@@ -20,30 +20,51 @@ test.describe('@smoke home page', () => {
 
   test('labels every placeholder and never presents it as real', async ({ page }) => {
     const tags = page.locator('[data-placeholder]');
-    expect(await tags.count()).toBeGreaterThanOrEqual(10);
+    expect(await tags.count()).toBeGreaterThanOrEqual(5);
     for (const text of await tags.allTextContents()) expect(text).toContain('Заглушка');
 
-    for (const id of ['top', 'showreel', 'about', 'contact']) {
+    // Bio, portrait and contacts are still placeholders; the work is real.
+    for (const id of ['about', 'contact']) {
       await expect(page.locator(`#${id} [data-placeholder]:visible`).first()).toBeVisible();
     }
-    const projects = page.locator('#work [data-category]');
-    await expect(projects).toHaveCount(6);
-    for (const project of await projects.all()) {
-      await expect(project.locator('[data-placeholder]')).toContainText('вымышленный проект');
+    for (const id of ['top', 'showreel', 'work']) {
+      await expect(page.locator(`#${id} [data-placeholder]`)).toHaveCount(0);
+    }
+    await expect(page.locator('body')).not.toContainText('вымышлен');
+    // Unconfirmed details are said, not guessed.
+    await expect(page.locator('#work [data-work-note]')).toContainText('Названия рабочие');
+    for (const pending of await page.locator('#work [data-roles-pending]').all()) {
+      await expect(pending).toHaveText('Роль Анны уточняется');
     }
     // No invented contact: placeholders render no link and no contact button.
     await expect(page.locator('[data-contacts] a')).toHaveCount(0);
     await expect(page.locator('#contact a.kadr-btn')).toHaveCount(0);
     await expect(page.locator('[data-footer-note]')).toContainText('заглушки');
+    // The note names only what is still pending, never the real work.
+    await expect(page.locator('[data-footer-note]')).toHaveText(
+      'Сайт наполняется: фото, текст о себе и контакты — заглушки.',
+    );
   });
 
-  test('never renders a player or play control without a video file', async ({ page }) => {
-    await expect(page.locator('video')).toHaveCount(0);
+  test('every player has a real, playable file; nothing autoplays', async ({ page, request }) => {
+    const videos = page.locator('video');
+    await expect(videos).toHaveCount(10); // showreel + 9 projects
     await expect(page.locator('dialog')).toHaveCount(0);
     await expect(page.locator('[data-showreel-media]')).toHaveAttribute(
       'data-showreel-media',
-      'placeholder',
+      'video',
     );
+    for (const video of await videos.all()) {
+      await expect(video).toHaveAttribute('controls', '');
+      await expect(video).toHaveAttribute('preload', 'none');
+      await expect(video).not.toHaveAttribute('autoplay');
+      const [src, poster] = await video.evaluate((v: HTMLVideoElement) => [v.src, v.poster]);
+      for (const url of [src, poster]) {
+        const res = await request.head(url ?? '');
+        expect(res.status(), url).toBe(200);
+      }
+      expect(await video.evaluate((v: HTMLVideoElement) => v.paused)).toBe(true);
+    }
     // Every button on the page does something: menu, menu close or a filter.
     const buttons = await page
       .locator('button')
@@ -97,7 +118,7 @@ test.describe('@smoke home page', () => {
     await expect(page.locator('#showreel p').first()).toHaveCSS('color', black);
     await expect(page.locator('#services dd').first()).toHaveCSS('color', black);
     await expect(page.locator('#about p').first()).toHaveCSS('color', black);
-    await expect(page.locator('#work [data-demo-note]')).toHaveCSS('color', black);
+    await expect(page.locator('#work [data-work-note]')).toHaveCSS('color', black);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   });
 
@@ -116,38 +137,85 @@ test.describe('@smoke home page', () => {
   test('filters the portfolio by category', async ({ page }) => {
     const work = page.locator('#work');
     const visible = work.locator('[data-category]:visible');
-    await expect(visible).toHaveCount(6);
+    await expect(visible).toHaveCount(9);
 
-    await work.locator('[data-filter="voice"]').click();
-    await expect(visible).toHaveCount(1);
-    await expect(work.locator('[data-filter="voice"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(work.locator('[data-filter="all"]')).toHaveAttribute('aria-pressed', 'false');
-    await expect(work.locator('[data-filter-status]')).toHaveText('Показано работ: 1');
-    // The active filter turns blue; inactive ones stay black.
-    await expect(work.locator('[data-filter="voice"]')).toHaveCSS('color', 'rgb(26, 43, 255)');
-    await expect(work.locator('[data-filter="brand"]')).toHaveCSS('color', 'rgb(0, 0, 0)');
-
-    await work.locator('[data-filter="travel"]').click();
+    await work.locator('[data-filter="business"]').click();
     await expect(visible).toHaveCount(2);
+    await expect(work.locator('[data-filter="business"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(work.locator('[data-filter="all"]')).toHaveAttribute('aria-pressed', 'false');
+    await expect(work.locator('[data-filter-status]')).toHaveText('Показано работ: 2');
+    // The active filter turns blue; inactive ones stay black.
+    await expect(work.locator('[data-filter="business"]')).toHaveCSS('color', 'rgb(26, 43, 255)');
+    await expect(work.locator('[data-filter="events"]')).toHaveCSS('color', 'rgb(0, 0, 0)');
+
+    await work.locator('[data-filter="reels"]').click();
+    await expect(visible).toHaveCount(4);
+    await work.locator('[data-filter="events"]').click();
+    await expect(visible).toHaveCount(3);
     await work.locator('[data-filter="all"]').click();
-    await expect(visible).toHaveCount(6);
+    await expect(visible).toHaveCount(9);
+  });
+
+  test('frames each video at its own ratio: vertical 9:16, horizontal wide', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    for (const card of await page.locator('#work [data-category]').all()) {
+      const box = await card.locator('[data-footage]').boundingBox();
+      const ratio = (box?.width ?? 0) / (box?.height ?? 1);
+      const orientation = await card.getAttribute('data-orientation');
+      if (orientation === 'vertical') expect(ratio).toBeCloseTo(9 / 16, 2);
+      else expect(ratio).toBeGreaterThanOrEqual(1.59);
+    }
+  });
+
+  test('plays one video at a time and pauses a card when it is filtered out', async ({ page }) => {
+    const work = page.locator('#work');
+    // Real playback (no codec assumptions): play() is called on muted videos.
+    const play = (id: string) =>
+      page.evaluate(async (sel) => {
+        const v = document.querySelector<HTMLVideoElement>(sel);
+        if (!v) return 'missing';
+        v.muted = true;
+        try {
+          await v.play();
+          return 'playing';
+        } catch (e) {
+          return String(e);
+        }
+      }, `#work [data-category] article[aria-labelledby="project-${id}"] video`);
+    const paused = (id: string) =>
+      page
+        .locator(`#work article[aria-labelledby="project-${id}"] video`)
+        .evaluate((v: HTMLVideoElement) => v.paused);
+
+    expect(await play('fashion')).toBe('playing');
+    expect(await play('podcast')).toBe('playing');
+    await expect.poll(() => paused('fashion')).toBe(true);
+    expect(await paused('podcast')).toBe(false);
+
+    await work.locator('[data-filter="reels"]').click();
+    await expect.poll(() => paused('podcast')).toBe(true);
   });
 
   test('filters work from the keyboard', async ({ page }) => {
-    const brand = page.locator('#work [data-filter="brand"]');
-    await brand.focus();
+    const events = page.locator('#work [data-filter="events"]');
+    await events.focus();
     await page.keyboard.press('Enter');
-    await expect(brand).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('#work [data-category]:visible')).toHaveCount(2);
-    await page.keyboard.press('Shift+Tab');
+    await expect(events).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#work [data-category]:visible')).toHaveCount(3);
+    await page.locator('#work [data-filter="all"]').focus();
     await page.keyboard.press('Space');
-    await expect(page.locator('#work [data-category]:visible')).toHaveCount(6);
+    await expect(page.locator('#work [data-category]:visible')).toHaveCount(9);
   });
 
   test("each project shows Anna's roles, each circled in blue", async ({ page }) => {
     const cards = page.locator('#work [data-category]');
     for (const card of await cards.all()) {
       const marks = card.locator('.kadr-mark');
+      // Unconfirmed roles are stated as such, never guessed.
+      if ((await card.locator('[data-roles-pending]').count()) > 0) {
+        await expect(marks).toHaveCount(0);
+        continue;
+      }
       expect(await marks.count()).toBeGreaterThan(0);
       for (const mark of await marks.all()) {
         await expect(mark).toHaveCSS('color', 'rgb(0, 0, 0)');
@@ -157,9 +225,13 @@ test.describe('@smoke home page', () => {
       }
     }
     await expect(page.locator('#work [data-category]').first().locator('.kadr-mark')).toHaveText([
-      'Видеопроизводство',
+      'Съёмка',
       'Монтаж',
     ]);
+    // Editing-only work is never presented as filmed by Anna.
+    await expect(
+      page.locator('#work article[aria-labelledby="project-dance-reel"] .kadr-mark'),
+    ).toHaveText(['Монтаж']);
   });
 
   test('loads only same-origin resources (no CDN or third-party media)', async ({
@@ -170,7 +242,9 @@ test.describe('@smoke home page', () => {
     const external: string[] = [];
     page.on('request', (request) => {
       const url = request.url();
-      if (!url.startsWith(origin) && !url.startsWith('data:')) external.push(url);
+      // WebKit hands its video elements same-origin blob: URLs; those are local.
+      const local = url.startsWith(origin) || url.startsWith(`blob:${origin}/`);
+      if (!local && !url.startsWith('data:')) external.push(url);
     });
     await page.reload();
     await page.waitForLoadState('networkidle');
@@ -191,7 +265,7 @@ test.describe('@smoke home page', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.reload();
     await page.evaluate(() => window.scrollTo(0, window.innerHeight));
-    await page.locator('#work [data-filter="travel"]').click();
+    await page.locator('#work [data-filter="events"]').click();
     await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0);
     expect(
       await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior),

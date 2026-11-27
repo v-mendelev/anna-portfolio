@@ -2,14 +2,16 @@
 /**
  * A frame of footage. Renders real media when provided (poster image and/or
  * video), otherwise a painted placeholder in the project's colour story with
- * a visible "Заглушка" label. No third-party media.
+ * a visible "Заглушка" label. Media keys resolve through `media()` (public/media/
+ * or the CDN in PUBLIC_MEDIA_BASE_URL).
  */
 import PlaceholderTag from './PlaceholderTag.astro';
-import { withBase } from '../../lib/paths';
+import { media } from '../../lib/media';
 import type { FrameTone } from '../../lib/portfolio';
 
 export interface Props {
-  tone: FrameTone;
+  /** Placeholder colours; real media does not need them. */
+  tone?: FrameTone;
   /**
    * CSS aspect-ratio, e.g. "16 / 9", "2.39 / 1", "4 / 5", "1". Pass `null` to
    * leave it to classes (responsive ratios such as `aspect-video lg:aspect-[4/5]`).
@@ -18,6 +20,8 @@ export interface Props {
   /** Accessible description of what the frame shows / will show. */
   description: string;
   poster?: string;
+  /** AVIF version of `poster` (images only), offered first. */
+  posterAvif?: string;
   video?: string;
   placeholder?: boolean;
   /** Text after the placeholder label, e.g. "кадр из ролика". */
@@ -48,10 +52,11 @@ export interface Props {
 }
 
 const {
-  tone,
+  tone = { from: '#0b16a8', to: '#e6e8ff' },
   ratio = '16 / 9',
   description,
   poster,
+  posterAvif,
   video,
   placeholder = !poster && !video,
   placeholderDetail,
@@ -84,18 +89,18 @@ const style = [
   {video && player ? (
     <video
       class="absolute inset-0 h-full w-full bg-black object-contain"
-      src={withBase(video)}
-      poster={poster ? withBase(poster) : undefined}
+      src={media(video)}
+      poster={poster ? media(poster) : undefined}
       controls
       playsinline
-      preload="metadata"
+      preload="none"
       aria-label={description}
     />
   ) : video ? (
     <video
       class="absolute inset-0 h-full w-full object-cover"
-      src={withBase(video)}
-      poster={poster ? withBase(poster) : undefined}
+      src={media(video)}
+      poster={poster ? media(poster) : undefined}
       muted
       playsinline
       loop
@@ -103,13 +108,17 @@ const style = [
       aria-label={description}
     />
   ) : poster ? (
-    <img
-      class="absolute inset-0 h-full w-full object-cover"
-      src={withBase(poster)}
-      alt={description}
-      loading={eager ? 'eager' : 'lazy'}
-      decoding="async"
-    />
+    <picture>
+      {posterAvif && <source srcset={media(posterAvif)} type="image/avif" />}
+      <img
+        class="absolute inset-0 h-full w-full object-cover"
+        src={media(poster)}
+        alt={description}
+        loading={eager ? 'eager' : 'lazy'}
+        fetchpriority={eager ? 'high' : undefined}
+        decoding="async"
+      />
+    </picture>
   ) : (
     <div
       class:list={[

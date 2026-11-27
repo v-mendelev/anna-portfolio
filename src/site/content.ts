@@ -1,17 +1,20 @@
 import type { PortfolioContent } from '../lib/portfolio';
 
 /**
- * Content of Anna Shelenkova's site — the only file to edit when real
- * material arrives (see "Замена контента" in README.md).
+ * Content of Anna Shelenkova's site — the only file to edit when material
+ * changes (see "Замена контента" in README.md and docs/MEDIA.md).
  *
  * Facts from the brief: name, profession and the four services.
- * Everything else (projects, showreel, portrait, bio, contacts) is a clearly
- * flagged placeholder until Anna provides real material. Do not replace
- * placeholders with invented clients, results, reviews or numbers.
+ * Showreel and portfolio: Anna's real videos from her Yandex Disk portfolio
+ * (2026-11-27). Titles are neutral working titles; clients, roles and other
+ * details Anna has not confirmed yet are flagged (`unconfirmed`) or left out.
+ * Bio, portrait and contacts stay labelled placeholders. Never fill gaps with
+ * invented clients, results, reviews or numbers.
  *
- * Media: put files in `public/media/` and reference them as "/media/<file>".
- * A slot with `video` renders a player, with only `poster` an image, with
- * neither a labelled placeholder (never an empty player).
+ * Media: keys relative to the media root (public/media/ or the CDN set in
+ * PUBLIC_MEDIA_BASE_URL), built by `pnpm media:build`. A slot with `video`
+ * renders a player, with only `poster` an image, with neither a labelled
+ * placeholder (never an empty player).
  */
 export const content: PortfolioContent = {
   person: {
@@ -19,7 +22,7 @@ export const content: PortfolioContent = {
     role: 'Видеограф',
     placeholderBio: true,
     bio: 'Здесь будет короткий рассказ Анны о себе: с чего началась съёмка, как она работает и что любит снимать. Текст появится после согласования.',
-    // portrait: '/media/anna.jpg',
+    // portrait: 'about/portrait.webp',
   },
 
   // Anna is a videographer first (filming, editing, voice-over); travel
@@ -27,16 +30,17 @@ export const content: PortfolioContent = {
   hero: {
     lead: 'Видеограф. Снимаю, монтирую и озвучиваю видео: от съёмки до готового ролика с голосом.',
     next: 'Новое направление — видео о путешествиях.',
-    // still: { poster: '/media/hero.jpg' },
+    // A frame from the showreel (0:04.5), cropped to 16:9.
+    still: { poster: 'hero/still.webp', posterAvif: 'hero/still.avif' },
   },
 
   showreel: {
     title: 'Шоурил',
-    description: 'Лучшие кадры из разных проектов в одном ролике: съёмка, монтаж и голос.',
-    placeholder: true,
-    // video: '/media/showreel.mp4',
-    // poster: '/media/showreel.jpg',
-    // durationLabel: '1:30',
+    description: 'Фрагменты разных работ в одном ролике.',
+    placeholder: false,
+    video: 'showreel/video.mp4',
+    poster: 'showreel/poster.webp',
+    durationLabel: '0:35',
   },
 
   services: [
@@ -69,65 +73,131 @@ export const content: PortfolioContent = {
     },
   ],
 
+  // Genres actually present in Anna's portfolio.
   categories: [
-    { id: 'brand', label: 'Бренды' },
-    { id: 'travel', label: 'Путешествия' },
-    { id: 'editing', label: 'Монтаж' },
-    { id: 'voice', label: 'Озвучка' },
+    { id: 'business', label: 'Эксперты и бизнес' },
+    { id: 'events', label: 'Мероприятия' },
+    { id: 'reels', label: 'Рилсы и сюжеты' },
   ],
 
-  // Invented layout examples (placeholder: true), NOT Anna's work. Replace each
-  // with a real project: title, category, roles, and `video` and/or `poster`.
+  roles: [
+    { id: 'filming', label: 'Съёмка' },
+    { id: 'editing', label: 'Монтаж' },
+  ],
+
+  // Anna's real work. Roles come only from Anna's own file labels
+  // ("съемка + монтаж", "монтаж"); where a file has none, roles stay empty
+  // and the card says the role is being confirmed. Clients are not named
+  // until Anna confirms they may be.
   projects: [
     {
-      id: 'brand-film',
-      title: 'Бренд-ролик',
-      category: 'brand',
-      roles: ['production', 'editing'],
-      tone: { from: '#26122a', to: '#d46a6a', horizon: 68, sunX: 50, sunY: 52 },
-      placeholder: true,
+      id: 'vizitka',
+      title: 'Видео-визитка',
+      category: 'business',
+      roles: ['filming', 'editing'],
+      orientation: 'vertical',
+      duration: '1:33',
+      video: 'work/vizitka/video.mp4',
+      poster: 'work/vizitka/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
     {
-      id: 'coast',
-      title: 'Ролик о побережье',
-      category: 'travel',
-      place: 'Побережье',
-      roles: ['travel', 'production', 'editing'],
-      tone: { from: '#0f3d4a', to: '#d9b98a', horizon: 62, sunX: 70, sunY: 34 },
-      placeholder: true,
+      id: 'fashion',
+      title: 'Ролик о моде',
+      category: 'reels',
+      roles: ['filming', 'editing'],
+      orientation: 'vertical',
+      duration: '0:26',
+      video: 'work/fashion/video.mp4',
+      poster: 'work/fashion/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
     {
-      id: 'event',
-      title: 'Ролик с мероприятия',
-      category: 'brand',
-      roles: ['production', 'editing'],
-      tone: { from: '#2b1d16', to: '#c9874f', horizon: 74, sunX: 24, sunY: 40 },
-      placeholder: true,
+      id: 'conference',
+      title: 'Конференция',
+      category: 'events',
+      roles: ['filming', 'editing'],
+      orientation: 'vertical',
+      duration: '0:52',
+      video: 'work/conference/video.mp4',
+      poster: 'work/conference/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
     {
-      id: 'mountains',
-      title: 'Горный маршрут',
-      category: 'travel',
-      place: 'Горы',
-      roles: ['travel', 'editing', 'voice'],
-      tone: { from: '#1d2633', to: '#a9b8c9', horizon: 44, sunX: 82, sunY: 18 },
-      placeholder: true,
+      id: 'corporate',
+      title: 'Корпоратив',
+      category: 'events',
+      roles: [],
+      orientation: 'vertical',
+      duration: '0:32',
+      video: 'work/corporate/video.mp4',
+      poster: 'work/corporate/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
     {
-      id: 'recut',
-      title: 'Монтаж из материала клиента',
-      category: 'editing',
+      id: 'podcast',
+      title: 'Интро подкаста',
+      category: 'business',
       roles: ['editing'],
-      tone: { from: '#141c14', to: '#8fa66b', horizon: 52, sunX: 30, sunY: 22 },
-      placeholder: true,
+      orientation: 'horizontal',
+      duration: '2:26',
+      video: 'work/podcast/video.mp4',
+      poster: 'work/podcast/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
     {
-      id: 'voice-presentation',
-      title: 'Озвучка презентации',
-      category: 'voice',
-      roles: ['voice'],
-      tone: { from: '#1a1a2e', to: '#7a86c2', horizon: 80, sunX: 62, sunY: 46 },
-      placeholder: true,
+      id: 'stage-promo',
+      title: 'Промо танцевального шоу',
+      category: 'events',
+      roles: [],
+      orientation: 'horizontal',
+      ratio: '16 / 10',
+      duration: '1:03',
+      video: 'work/stage-promo/video.mp4',
+      poster: 'work/stage-promo/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
+    },
+    {
+      id: 'motorcycles',
+      title: 'Сюжет «Мотобат»',
+      category: 'reels',
+      roles: ['filming', 'editing'],
+      orientation: 'vertical',
+      duration: '0:34',
+      video: 'work/motorcycles/video.mp4',
+      poster: 'work/motorcycles/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
+    },
+    {
+      id: 'dance-bw',
+      title: 'Танцевальный ролик, ч/б',
+      category: 'reels',
+      roles: ['filming', 'editing'],
+      orientation: 'vertical',
+      duration: '0:48',
+      video: 'work/dance-bw/video.mp4',
+      poster: 'work/dance-bw/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
+    },
+    {
+      id: 'dance-reel',
+      title: 'Танцевальный рилс',
+      category: 'reels',
+      roles: ['editing'],
+      orientation: 'vertical',
+      duration: '1:02',
+      video: 'work/dance-reel/video.mp4',
+      poster: 'work/dance-reel/poster.webp',
+      unconfirmed: true,
+      placeholder: false,
     },
   ],
 
@@ -144,14 +214,26 @@ export function serviceTitle(id: string): string {
   return content.services.find((s) => s.id === id)?.title ?? id;
 }
 
+/** Label of a project role: a role ("Съёмка") or a service title. */
+export function roleTitle(id: string): string {
+  return content.roles?.find((r) => r.id === id)?.label ?? serviceTitle(id);
+}
+
 export function categoryLabel(id: string): string {
   return content.categories.find((c) => c.id === id)?.label ?? id;
 }
 
 /**
- * Shown above the portfolio while projects are placeholders: the projects are
- * invented layout examples, not Anna's actual work.
+ * Shown above the portfolio while project details are unconfirmed: the work
+ * is Anna's, the working titles and labels are not final.
  */
+export const WORK_NOTE =
+  'Все ролики — работы Анны. Названия рабочие: заказчиков и детали проектов Анна уточнит.';
+
+/** Shown on a card whose roles Anna has not confirmed yet. */
+export const ROLES_PENDING = 'Роль Анны уточняется';
+
+/** Shown in the portfolio while it still holds invented placeholder projects. */
 export const DEMO_WORK_NOTE =
   'Проекты ниже вымышлены и показывают только макет. Это не работы Анны: их заменят реальные, когда она пришлёт материалы.';
 

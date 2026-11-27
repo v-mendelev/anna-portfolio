@@ -86,13 +86,14 @@ test.describe('@smoke home on phones', () => {
     }
   });
 
-  test('real work is flagged as not yet confirmed, and frames fit the screen', async ({ page }) => {
+  test('portfolio frames, portrait and review cards fit the screen', async ({ page }) => {
     await openHome(page);
-    const note = page.locator('#work [data-work-note]');
-    await expect(note).toBeVisible();
-    await expect(note).toContainText('работы Анны');
-    await expect(note).toContainText('уточнит');
     const width = page.viewportSize()?.width ?? 0;
+    for (const el of await page.locator('#about [data-footage], #testimonials li').all()) {
+      const box = await el.boundingBox();
+      expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+    }
     for (const frame of await page.locator('#work [data-footage]').all()) {
       const box = await frame.boundingBox();
       // Sized by width at its own ratio: never wider than the phone.

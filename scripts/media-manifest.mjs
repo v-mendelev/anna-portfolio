@@ -19,6 +19,16 @@ export const showreel = {
   poster: 11.6,
 };
 
+/**
+ * Anna's portrait from her previous (Tilda) site, original 1667×2500 PNG,
+ * stored in media-src/Tilda/ (see _sources.txt there). Kept at its 2:3 ratio.
+ */
+export const portrait = {
+  key: 'about',
+  source: 'Tilda/noroot.png',
+  width: 900,
+};
+
 /** Still for the hero frame (16:9 crop of a horizontal source). */
 export const hero = {
   key: 'hero',

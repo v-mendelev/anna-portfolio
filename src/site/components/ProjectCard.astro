@@ -4,12 +4,12 @@
  * its place on the sheet), the title, the category and what Anna did —
  * each role circled in blue. A project with a video plays in place, framed
  * at its own ratio (vertical 9:16, horizontal 16:9) so nothing is cropped.
- * Roles Anna has not confirmed are not guessed: the card says so.
+ * Roles Anna has not confirmed are not guessed: the card shows none.
  */
 import FootageFrame from '../../components/ui/FootageFrame.astro';
 import PlaceholderTag from '../../components/ui/PlaceholderTag.astro';
 import { frameRatio, type Project } from '../../lib/portfolio';
-import { DEMO_PROJECT_LABEL, ROLES_PENDING, categoryLabel, roleTitle } from '../content';
+import { DEMO_PROJECT_LABEL, categoryLabel, roleTitle } from '../content';
 
 export interface Props {
   project: Project;
@@ -58,7 +58,7 @@ const orientation = p.orientation ?? 'horizontal';
     </h3>
     <p class="mt-1 text-sm font-medium">{meta}</p>
     {p.description && <p class="mt-2 text-base leading-snug font-medium">{p.description}</p>}
-    {p.roles.length > 0 ? (
+    {p.roles.length > 0 && (
       <ul class="kadr-marks mt-2" aria-label="Что я делала в проекте">
         {p.roles.map((role) => (
           <li class="kadr-mark">
@@ -67,10 +67,6 @@ const orientation = p.orientation ?? 'horizontal';
           </li>
         ))}
       </ul>
-    ) : (
-      <p class="mt-2 text-sm font-semibold" data-roles-pending>
-        {ROLES_PENDING}
-      </p>
     )}
     {p.placeholder && (
       <PlaceholderTag detail={DEMO_PROJECT_LABEL} class="mt-1 block text-xs font-semibold" />

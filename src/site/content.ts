@@ -6,10 +6,13 @@ import type { PortfolioContent } from '../lib/portfolio';
  *
  * Facts from the brief: name, profession and the four services.
  * Showreel and portfolio: Anna's real videos from her Yandex Disk portfolio
- * (2026-11-27). Titles are neutral working titles; clients, roles and other
- * details Anna has not confirmed yet are flagged (`unconfirmed`) or left out.
- * Bio, portrait and contacts stay labelled placeholders. Never fill gaps with
- * invented clients, results, reviews or numbers.
+ * (2026-11-27). Titles are neutral; details Anna has not confirmed are not
+ * shown (`unconfirmed` projects list only what is known; open questions are
+ * in docs/CONTENT-REVIEW.md).
+ * Portrait, biography and reviews: from Anna's previous site,
+ * annashelenkova.ru (2026-11-27). Contacts: confirmed by Anna.
+ * The YouDo profile link is still missing and stays a labelled placeholder.
+ * Never fill gaps with invented clients, results, reviews or numbers.
  *
  * Media: keys relative to the media root (public/media/ or the CDN set in
  * PUBLIC_MEDIA_BASE_URL), built by `pnpm media:build`. A slot with `video`
@@ -20,9 +23,22 @@ export const content: PortfolioContent = {
   person: {
     name: 'Анна Шеленкова',
     role: 'Видеограф',
-    placeholderBio: true,
-    bio: 'Здесь будет короткий рассказ Анны о себе: с чего началась съёмка, как она работает и что любит снимать. Текст появится после согласования.',
-    // portrait: 'about/portrait.webp',
+    placeholderBio: false,
+    // From the «Обо мне» and «Озвучка» blocks of annashelenkova.ru, shortened.
+    // Time-sensitive statements are phrased without "сейчас".
+    bio: [
+      'Меня зовут Анна Шеленкова. Я видеомонтажёр и рилсмейкер: снимаю, монтирую и озвучиваю видео. Люблю сложные и творческие задачи и помогаю брендам обрести свой визуальный голос.',
+      'Среди моих заказчиков — петербургская школа танцев IDC.',
+      'В моём портфолио — промо для крупных площадок (VK Stadium, AGUUTEENS FEST), видео-визитки для участников телешоу «Большие и маленькие» на канале «Россия К» и контент для соцсетей IDC.',
+      'До этого работала в пресс-службе Склифа: снимала и монтировала операции, клинические случаи и развлекательные видео для соцсетей института. С января 2026 года — фрилансер: монтирую контент для предпринимателей, психологов и ивент-компаний.',
+      'Часто ко мне приходят без чёткого понимания, каким должно быть видео. Тогда я забираю «сырой» материал, продумываю концепцию и делаю так, чтобы результат оказался лучше, чем ожидал заказчик.',
+      'В 2025 году окончила курс «Актёр закадрового озвучания и дубляжа» под руководством Станислава Стрелкова.',
+      'Работаю с бизнесом и агентствами, где ценят чёткие сроки, профессиональный подход и ответственность с обеих сторон.',
+    ],
+    // Black-and-white portrait from annashelenkova.ru, 2:3, not cropped.
+    portrait: 'about/portrait.webp',
+    portraitAvif: 'about/portrait.avif',
+    portraitAlt: 'Анна Шеленкова, чёрно-белый портрет у окна',
   },
 
   // Anna is a videographer first (filming, editing, voice-over); travel
@@ -87,8 +103,8 @@ export const content: PortfolioContent = {
 
   // Anna's real work. Roles come only from Anna's own file labels
   // ("съемка + монтаж", "монтаж"); where a file has none, roles stay empty
-  // and the card says the role is being confirmed. Clients are not named
-  // until Anna confirms they may be.
+  // and the card shows none. Clients are not named until Anna confirms
+  // they may be (open questions: docs/CONTENT-REVIEW.md).
   projects: [
     {
       id: 'vizitka',
@@ -201,11 +217,71 @@ export const content: PortfolioContent = {
     },
   ],
 
-  // Contacts render as links only once `href` (and `value`) are filled in.
+  // Four real reviews shown on annashelenkova.ru as screenshots of client
+  // reviews for completed tasks (all rated 5.0). Text, names and task titles
+  // are reproduced exactly, emoji included; avatars are not reused.
+  testimonials: [
+    {
+      id: 'svetlana-k',
+      author: 'Svetlana K.',
+      context: 'Снять видео представление для сайта и рилсы в студии',
+      quote:
+        'Мне очень понравилось работать с Анной. Она настоящий профессионал, очень качественно выполняет работу. Помогла подобрать студию для съемки, помогла определиться с образами, привезла своё профессиональное оборудование, провела съемку в установленный срок. Успели заснять всё, что планировали, и видео получилось даже лучше, чем я ожидала! Однозначно рекомендую Анну!',
+      rating: 5,
+      placeholder: false,
+    },
+    {
+      id: 'alena-k',
+      author: 'Алена К.',
+      context: 'Снять стильный видеоролик офиса для соцсетей',
+      quote:
+        'Анна большой профессионал своего дела, все очень понравилось\nБудем сотрудничать и в дальнейшем, спасибо большое!',
+      rating: 5,
+      placeholder: false,
+    },
+    {
+      id: 'yulia-f',
+      author: 'Юлия Ф.',
+      context: 'Сделать рилс в готовом образе. Кто на белорусской',
+      quote:
+        'Классная девушка, профи 🥰 с задачей справилась на все 100. Быстро подъехала и спасла ситуацию 🙏 рекомендую',
+      rating: 5,
+      placeholder: false,
+    },
+    {
+      id: 'aleksandra-h',
+      author: 'Александра Х.',
+      context: 'Смонтировать видео',
+      quote: 'Отличный специалист со своим стилем и вкусом! Все очень быстро и качественно',
+      rating: 5,
+      placeholder: false,
+    },
+  ],
+
+  // Confirmed by Anna. A channel without `href` shows a labelled placeholder.
   contacts: [
-    { id: 'telegram', label: 'Telegram', placeholder: true },
-    { id: 'email', label: 'Почта', placeholder: true },
-    { id: 'phone', label: 'Телефон', placeholder: true },
+    {
+      id: 'telegram',
+      label: 'Telegram',
+      href: 'https://t.me/Anna_NRL',
+      value: '@Anna_NRL',
+      placeholder: false,
+    },
+    {
+      id: 'phone',
+      label: 'Телефон',
+      href: 'tel:+79651461372',
+      value: '8(965)-146-13-72',
+      placeholder: false,
+    },
+    {
+      id: 'email',
+      label: 'Почта',
+      href: 'mailto:annashelenkova_nrl@mail.ru',
+      value: 'annashelenkova_nrl@mail.ru',
+      placeholder: false,
+    },
+    // The profile link has not been provided yet: never invent a URL.
     { id: 'youdo', label: 'Профиль на YouDo', placeholder: true },
   ],
 };
@@ -223,16 +299,6 @@ export function categoryLabel(id: string): string {
   return content.categories.find((c) => c.id === id)?.label ?? id;
 }
 
-/**
- * Shown above the portfolio while project details are unconfirmed: the work
- * is Anna's, the working titles and labels are not final.
- */
-export const WORK_NOTE =
-  'Все ролики — работы Анны. Названия рабочие: заказчиков и детали проектов Анна уточнит.';
-
-/** Shown on a card whose roles Anna has not confirmed yet. */
-export const ROLES_PENDING = 'Роль Анны уточняется';
-
 /** Shown in the portfolio while it still holds invented placeholder projects. */
 export const DEMO_WORK_NOTE =
   'Проекты ниже вымышлены и показывают только макет. Это не работы Анны: их заменят реальные, когда она пришлёт материалы.';
@@ -246,5 +312,6 @@ export const SECTIONS = [
   { id: 'work', label: 'Работы' },
   { id: 'services', label: 'Услуги' },
   { id: 'about', label: 'Обо мне' },
+  { id: 'testimonials', label: 'Отзывы' },
   { id: 'contact', label: 'Контакты' },
 ] as const;

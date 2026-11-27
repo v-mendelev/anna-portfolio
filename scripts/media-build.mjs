@@ -8,21 +8,25 @@
  *                (vertical 720×1280, horizontal ≤1280×720), capped bitrate
  *   poster.webp  the hand-picked frame, same size as the video
  *   hero: still.avif + still.webp (16:9, 1600 px wide)
+ *   about: portrait.avif + portrait.webp (original ratio, 900 px wide)
  *
  * Needs ffmpeg: on PATH, or its path in the FFMPEG environment variable.
- * Usage: pnpm media:build [out-dir]   (see docs/MEDIA.md)
+ * Usage: pnpm media:build [out-dir] [--stills]   (see docs/MEDIA.md)
+ *   --stills  rebuild only the still images (hero, portrait), not the videos
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { hero, showreel, work } from './media-manifest.mjs';
+import { hero, portrait, showreel, work } from './media-manifest.mjs';
 
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const SRC = 'media-src';
-const OUT = process.argv[2] || 'public/media';
+const args = process.argv.slice(2);
+const stillsOnly = args.includes('--stills');
+const OUT = args.find((a) => !a.startsWith('--')) || 'public/media';
 
-function ffmpeg(args) {
-  const r = spawnSync(FFMPEG, ['-hide_banner', '-v', 'error', '-y', ...args], {
+function ffmpeg(ffArgs) {
+  const r = spawnSync(FFMPEG, ['-hide_banner', '-v', 'error', '-y', ...ffArgs], {
     stdio: 'inherit',
   });
   if (r.error || r.status !== 0) {
@@ -58,30 +62,51 @@ function video(item) {
   ]);
 }
 
-function still(item) {
-  const dir = join(OUT, item.key);
-  mkdirSync(dir, { recursive: true });
-  const input = source(item.source);
-  const vf = 'crop=ih*16/9:ih,scale=1600:-2:flags=lanczos';
+/** One still as AVIF + WebP: `seek` is the second for a video source, else omitted. */
+function image(input, vf, base, seek) {
+  const at = seek === undefined ? [] : ['-ss', String(seek)];
   ffmpeg([
-    ...['-ss', String(item.at), '-i', input, '-frames:v', '1', '-vf', `${vf},format=yuv420p`],
+    ...at,
+    ...['-i', input, '-frames:v', '1', '-vf', `${vf},format=yuv420p`],
     ...['-c:v', 'libaom-av1', '-still-picture', '1', '-crf', '32', '-cpu-used', '4'],
-    join(dir, 'still.avif'),
+    `${base}.avif`,
   ]);
   ffmpeg([
-    ...['-ss', String(item.at), '-i', input, '-frames:v', '1', '-vf', vf],
+    ...at,
+    ...['-i', input, '-frames:v', '1', '-vf', vf],
     ...['-c:v', 'libwebp', '-quality', '78'],
-    join(dir, 'still.webp'),
+    `${base}.webp`,
   ]);
 }
 
 const kb = (p) => `${Math.round(statSync(p).size / 1024)} KB`;
-for (const item of [showreel, ...work]) {
-  video(item);
-  const dir = join(OUT, item.key);
-  process.stdout.write(
-    `${item.key}: video ${kb(join(dir, 'video.mp4'))}, poster ${kb(join(dir, 'poster.webp'))}\n`,
-  );
+
+if (!stillsOnly) {
+  for (const item of [showreel, ...work]) {
+    video(item);
+    const dir = join(OUT, item.key);
+    process.stdout.write(
+      `${item.key}: video ${kb(join(dir, 'video.mp4'))}, poster ${kb(join(dir, 'poster.webp'))}\n`,
+    );
+  }
 }
-still(hero);
-process.stdout.write(`${hero.key}: ${kb(join(OUT, hero.key, 'still.avif'))} avif\n`);
+
+mkdirSync(join(OUT, hero.key), { recursive: true });
+image(
+  source(hero.source),
+  'crop=ih*16/9:ih,scale=1600:-2:flags=lanczos',
+  join(OUT, hero.key, 'still'),
+  hero.at,
+);
+process.stdout.write(`${hero.key}: still ${kb(join(OUT, hero.key, 'still.avif'))} avif\n`);
+
+// Portrait: original 2:3 ratio, no crop; grey PNG converted to RGB.
+mkdirSync(join(OUT, portrait.key), { recursive: true });
+image(
+  source(portrait.source),
+  `scale=${portrait.width}:-2:flags=lanczos`,
+  join(OUT, portrait.key, 'portrait'),
+);
+process.stdout.write(
+  `${portrait.key}: portrait ${kb(join(OUT, portrait.key, 'portrait.avif'))} avif, ${kb(join(OUT, portrait.key, 'portrait.webp'))} webp\n`,
+);

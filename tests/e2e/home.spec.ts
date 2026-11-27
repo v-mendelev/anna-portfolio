@@ -15,35 +15,83 @@ test.describe('@smoke home page', () => {
     await expect(page.locator('.kadr')).toHaveCount(1);
     await expect(page.locator('[data-concept], [data-testid="back-to-design"]')).toHaveCount(0);
     await expect(page.locator('a[href*="design/"]')).toHaveCount(0);
-    await expect(page.locator('body')).not.toContainText(/концепци|демоверси/i);
+    // Wording of the old design-concept pages (the bio may say «концепцию»).
+    await expect(page.locator('body')).not.toContainText(
+      /концепци[яи] (дизайна|сайта)|концепция [«"]|Склейка|Рапид|демоверси/i,
+    );
   });
 
-  test('labels every placeholder and never presents it as real', async ({ page }) => {
+  test('the only placeholder left is the YouDo profile, clearly labelled', async ({ page }) => {
     const tags = page.locator('[data-placeholder]');
-    expect(await tags.count()).toBeGreaterThanOrEqual(5);
-    for (const text of await tags.allTextContents()) expect(text).toContain('Заглушка');
+    await expect(tags).toHaveCount(1);
+    await expect(tags).toHaveText('Заглушка: ссылка на профиль появится');
+    const youdo = page.locator('[data-contacts] > div', { hasText: 'Профиль на YouDo' });
+    await expect(youdo.locator('[data-placeholder]')).toBeVisible();
+    await expect(youdo.locator('a')).toHaveCount(0);
 
-    // Bio, portrait and contacts are still placeholders; the work is real.
-    for (const id of ['about', 'contact']) {
-      await expect(page.locator(`#${id} [data-placeholder]:visible`).first()).toBeVisible();
-    }
-    for (const id of ['top', 'showreel', 'work']) {
-      await expect(page.locator(`#${id} [data-placeholder]`)).toHaveCount(0);
-    }
-    await expect(page.locator('body')).not.toContainText('вымышлен');
-    // Unconfirmed details are said, not guessed.
-    await expect(page.locator('#work [data-work-note]')).toContainText('Названия рабочие');
-    for (const pending of await page.locator('#work [data-roles-pending]').all()) {
-      await expect(pending).toHaveText('Роль Анны уточняется');
-    }
-    // No invented contact: placeholders render no link and no contact button.
-    await expect(page.locator('[data-contacts] a')).toHaveCount(0);
-    await expect(page.locator('#contact a.kadr-btn')).toHaveCount(0);
-    await expect(page.locator('[data-footer-note]')).toContainText('заглушки');
-    // The note names only what is still pending, never the real work.
-    await expect(page.locator('[data-footer-note]')).toHaveText(
-      'Сайт наполняется: фото, текст о себе и контакты — заглушки.',
+    // No demo notes, pending labels or "coming soon" text anywhere.
+    await expect(
+      page.locator('[data-work-note], [data-roles-pending], [data-footer-note]'),
+    ).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText(
+      /вымышлен|уточняется|появится позже|Здесь будет|Сайт наполняется/,
     );
+  });
+
+  test('contacts: Telegram, phone and e-mail are real, working links', async ({ page }) => {
+    const links = page.locator('[data-contacts] a');
+    await expect(links).toHaveCount(3);
+    await expect(links.nth(0)).toHaveAttribute('href', 'https://t.me/Anna_NRL');
+    await expect(links.nth(0)).toHaveText('@Anna_NRL');
+    await expect(links.nth(1)).toHaveAttribute('href', 'tel:+79651461372');
+    await expect(links.nth(1)).toHaveText('8(965)-146-13-72');
+    await expect(links.nth(2)).toHaveAttribute('href', 'mailto:annashelenkova_nrl@mail.ru');
+    await expect(links.nth(2)).toHaveText('annashelenkova_nrl@mail.ru');
+    // The contact CTA opens Telegram.
+    const cta = page.locator('#contact a.kadr-btn');
+    await expect(cta).toHaveCount(1);
+    await expect(cta).toHaveAttribute('href', 'https://t.me/Anna_NRL');
+    await expect(cta).toHaveText('Написать: Telegram');
+    for (const link of await links.all()) {
+      await link.focus();
+      await expect(link).toBeFocused();
+    }
+  });
+
+  test("about: Anna's portrait at its own ratio and the biography", async ({ page, request }) => {
+    const img = page.locator('#about img');
+    await expect(img).toHaveAttribute('alt', /Анна Шеленкова/);
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(900);
+    const box = await page.locator('#about [data-footage]').boundingBox();
+    expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(2 / 3, 2);
+    const avif = await page.locator('#about picture source').getAttribute('srcset');
+    expect((await request.get(avif ?? '')).headers()['content-type']).toContain('image/avif');
+    const paragraphs = page.locator('#about [data-bio] p');
+    await expect(paragraphs).toHaveCount(7);
+    await expect(paragraphs.first()).toContainText('видеомонтажёр и рилсмейкер');
+  });
+
+  test('testimonials: four real reviews with author and task, in KADR frames', async ({ page }) => {
+    const cards = page.locator('#testimonials [data-testimonial]');
+    await expect(cards).toHaveCount(4);
+    await expect(page.locator('#testimonials h2')).toHaveText('Отзывы');
+    await expect(cards.locator('.kadr-author')).toHaveText([
+      'Svetlana K.',
+      'Алена К.',
+      'Юлия Ф.',
+      'Александра Х.',
+    ]);
+    await expect(cards.nth(3).locator('blockquote')).toHaveText(
+      'Отличный специалист со своим стилем и вкусом! Все очень быстро и качественно',
+    );
+    await expect(cards.nth(3)).toContainText('Задание «Смонтировать видео»');
+    for (const card of await cards.all()) {
+      await expect(card.locator('.vf')).toHaveCSS('color', 'rgb(26, 43, 255)');
+      await expect(card.locator('blockquote')).toHaveCSS('color', 'rgb(0, 0, 0)');
+      await expect(card.locator('.kadr-author')).toHaveCSS('color', 'rgb(26, 43, 255)');
+      await expect(card).toContainText('Оценка: 5,0 из 5');
+    }
   });
 
   test('every player has a real, playable file; nothing autoplays', async ({ page, request }) => {
@@ -118,7 +166,7 @@ test.describe('@smoke home page', () => {
     await expect(page.locator('#showreel p').first()).toHaveCSS('color', black);
     await expect(page.locator('#services dd').first()).toHaveCSS('color', black);
     await expect(page.locator('#about p').first()).toHaveCSS('color', black);
-    await expect(page.locator('#work [data-work-note]')).toHaveCSS('color', black);
+    await expect(page.locator('#testimonials blockquote').first()).toHaveCSS('color', black);
     await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   });
 
@@ -211,12 +259,8 @@ test.describe('@smoke home page', () => {
     const cards = page.locator('#work [data-category]');
     for (const card of await cards.all()) {
       const marks = card.locator('.kadr-mark');
-      // Unconfirmed roles are stated as such, never guessed.
-      if ((await card.locator('[data-roles-pending]').count()) > 0) {
-        await expect(marks).toHaveCount(0);
-        continue;
-      }
-      expect(await marks.count()).toBeGreaterThan(0);
+      // Unconfirmed roles are not guessed: such a card shows none.
+      if ((await marks.count()) === 0) continue;
       for (const mark of await marks.all()) {
         await expect(mark).toHaveCSS('color', 'rgb(0, 0, 0)');
         const loop = mark.locator('.kadr-mark-loop');
@@ -362,6 +406,7 @@ test.describe('@smoke desktop navigation', () => {
       'Работы',
       'Услуги',
       'Обо мне',
+      'Отзывы',
       'Контакты',
     ]);
   });

@@ -25,7 +25,14 @@ describe('portfolio content integrity', () => {
   });
 
   it('lists sections in page order', () => {
-    expect(SECTIONS.map((s) => s.id)).toEqual(['showreel', 'work', 'services', 'about', 'contact']);
+    expect(SECTIONS.map((s) => s.id)).toEqual([
+      'showreel',
+      'work',
+      'services',
+      'about',
+      'testimonials',
+      'contact',
+    ]);
   });
 
   it('references only known categories and roles', () => {
@@ -63,9 +70,27 @@ describe('portfolio content integrity', () => {
     for (const t of content.testimonials ?? []) {
       if (!t.placeholder) {
         expect(t.author.trim(), t.id).not.toBe('');
-        expect(t.company?.trim(), t.id).toBeTruthy();
+        // Attribution: the company, or the task the review was left for.
+        expect((t.company ?? t.context)?.trim(), t.id).toBeTruthy();
       }
     }
+  });
+
+  it('shows the four real reviews from the previous site, word for word', () => {
+    const reviews = content.testimonials ?? [];
+    expect(reviews.map((t) => t.author)).toEqual([
+      'Svetlana K.',
+      'Алена К.',
+      'Юлия Ф.',
+      'Александра Х.',
+    ]);
+    for (const t of reviews) {
+      expect(t.placeholder, t.id).toBe(false);
+      expect(t.rating, t.id).toBe(5);
+    }
+    expect(reviews[3]?.quote).toBe(
+      'Отличный специалист со своим стилем и вкусом! Все очень быстро и качественно',
+    );
   });
 
   it('flags every contact without a real link as a placeholder', () => {
@@ -74,12 +99,44 @@ describe('portfolio content integrity', () => {
     }
   });
 
-  it("shows Anna's real showreel; bio and contacts stay placeholders", () => {
+  it("shows Anna's real showreel, portrait and biography", () => {
     expect(content.showreel.placeholder).toBe(false);
     expect(content.showreel.video).toBeTruthy();
     expect(content.showreel.poster).toBeTruthy();
-    expect(content.person.placeholderBio).toBe(true);
-    expect(content.person.portrait).toBeUndefined();
+    expect(content.person.placeholderBio).toBe(false);
+    expect(content.person.portrait).toBe('about/portrait.webp');
+    expect(content.person.portraitAvif).toBe('about/portrait.avif');
+    expect(content.person.portraitAlt).toMatch(/Анна Шеленкова/);
+  });
+
+  it('keeps the biography to facts from her previous site, without "сейчас"', () => {
+    const bio = content.person.bio.join(' ');
+    for (const fact of [
+      'видеомонтажёр и рилсмейкер',
+      'IDC',
+      'VK Stadium',
+      'AGUUTEENS FEST',
+      '«Большие и маленькие»',
+      '«Россия К»',
+      'пресс-службе Склифа',
+      'С января 2026 года',
+      'Станислава Стрелкова',
+    ]) {
+      expect(bio, fact).toContain(fact);
+    }
+    expect(bio).not.toMatch(/сейчас|лучший|№ ?1|лет опыта/i);
+  });
+
+  it('uses the confirmed contacts and keeps only YouDo as a placeholder', () => {
+    const byId = Object.fromEntries(content.contacts.map((c) => [c.id, c]));
+    expect(byId.telegram?.href).toBe('https://t.me/Anna_NRL');
+    expect(byId.telegram?.value).toBe('@Anna_NRL');
+    expect(byId.phone?.href).toBe('tel:+79651461372');
+    expect(byId.phone?.value).toBe('8(965)-146-13-72');
+    expect(byId.email?.href).toBe('mailto:annashelenkova_nrl@mail.ru');
+    expect(byId.email?.value).toBe('annashelenkova_nrl@mail.ru');
+    expect(byId.youdo?.href).toBeUndefined();
+    expect(content.contacts.filter((c) => c.placeholder).map((c) => c.id)).toEqual(['youdo']);
   });
 
   const keys = [

@@ -1,0 +1,49 @@
+---
+/**
+ * Reviews: real client reviews, word for word, each in viewfinder marks with
+ * the author's name as published and the task it was left for. A static
+ * grid — every review is readable without a carousel or any script.
+ */
+import { content } from '../content';
+
+const testimonials = (content.testimonials ?? []).filter((t) => !t.placeholder);
+const rating = (value: number) => value.toFixed(1).replace('.', ',');
+---
+
+{testimonials.length > 0 && (
+  <section id="testimonials" class="border-t-2 border-volt">
+    <div class="kadr-wrap py-16 lg:py-24">
+      <div class="grid gap-x-6 gap-y-5 lg:grid-cols-12">
+        <h2 class="kadr-h2 lg:col-span-5">Отзывы</h2>
+        <p class="max-w-[24em] text-lg leading-relaxed font-medium lg:col-span-7 lg:pt-3">
+          Что пишут заказчики после выполненных заданий.
+        </p>
+      </div>
+      <ul class="mt-12 grid items-start gap-x-8 gap-y-10 md:grid-cols-2" data-testimonials>
+        {testimonials.map((t) => (
+          <li class="kadr-frame relative" data-testimonial={t.id}>
+            <span class="vf" aria-hidden="true"></span>
+            <figure class="m-0 flex h-full flex-col px-5 py-6 sm:px-8 sm:py-8">
+              <blockquote class="m-0 text-lg leading-relaxed font-semibold whitespace-pre-line">
+                {t.quote}
+              </blockquote>
+              <figcaption class="mt-6 border-t-2 border-volt pt-4">
+                <span class="kadr-author block text-xl font-extrabold tracking-[-0.01em]">
+                  {t.author}
+                </span>
+                {t.context && (
+                  <span class="mt-1 block text-sm font-medium">Задание «{t.context}»</span>
+                )}
+                {t.rating !== undefined && (
+                  <span class="mt-1 block text-sm font-semibold">
+                    Оценка: {rating(t.rating)} из 5
+                  </span>
+                )}
+              </figcaption>
+            </figure>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+)}

@@ -12,7 +12,15 @@ export interface RouteSpec {
 export const ROUTES: readonly RouteSpec[] = [{ path: '', name: 'home', h1: /Шеленкова/ }];
 
 /** Home page sections, in order (anchors used by the header and the menu). */
-export const SITE_SECTIONS = ['top', 'showreel', 'work', 'services', 'about', 'contact'] as const;
+export const SITE_SECTIONS = [
+  'top',
+  'showreel',
+  'work',
+  'services',
+  'about',
+  'testimonials',
+  'contact',
+] as const;
 
 /** Self-hosted typefaces the site must actually load. */
 export const SITE_FONTS = ['Onest Variable'] as const;

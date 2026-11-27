@@ -1,7 +1,7 @@
 ---
 /**
  * Anna Shelenkova's site — one page in the KADR design.
- * Sections: hero → showreel → work → services → about → contact.
+ * Sections: hero → showreel → work → services → about → testimonials → contact.
  * Content lives in src/site/content.ts; these components only lay it out.
  */
 import About from './About.astro';
@@ -11,6 +11,7 @@ import Services from './Services.astro';
 import Showreel from './Showreel.astro';
 import SiteFooter from './SiteFooter.astro';
 import SiteHeader from './SiteHeader.astro';
+import Testimonials from './Testimonials.astro';
 import Work from './Work.astro';
 ---
 
@@ -22,6 +23,7 @@ import Work from './Work.astro';
     <Work />
     <Services />
     <About />
+    <Testimonials />
     <Contact />
   </main>
   <SiteFooter />

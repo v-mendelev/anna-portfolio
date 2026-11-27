@@ -2,14 +2,14 @@
 /** Footer: name, a way back up, and an honest note while content is pending. */
 import { content } from '../content';
 
-const { person, projects, showreel, contacts } = content;
+const { person, projects, showreel } = content;
 // Name exactly what is still a placeholder, nothing that is already real.
+// A missing contact link is labelled in the contact list itself.
 const pendingParts = [
   projects.some((p) => p.placeholder) && 'работы',
   showreel.placeholder && 'шоурил',
   !person.portrait && 'фото',
   person.placeholderBio && 'текст о себе',
-  contacts.some((c) => c.placeholder) && 'контакты',
 ].filter((part): part is string => Boolean(part));
 const pending =
   pendingParts.length > 0

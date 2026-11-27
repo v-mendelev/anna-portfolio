@@ -4,14 +4,14 @@
  * videos sit one column wide, horizontal ones span two, each at its own ratio.
  */
 import { usedCategories } from '../../lib/portfolio';
-import { DEMO_WORK_NOTE, WORK_NOTE, content } from '../content';
+import { DEMO_WORK_NOTE, content } from '../content';
 import ProjectCard from './ProjectCard.astro';
 
 const { projects } = content;
 const categories = usedCategories(content.categories, projects);
 const hasPlaceholders = projects.some((p) => p.placeholder);
-const hasUnconfirmed = projects.some((p) => p.unconfirmed);
-const note = hasPlaceholders ? DEMO_WORK_NOTE : hasUnconfirmed ? WORK_NOTE : undefined;
+// Only invented placeholder projects need a note; real work speaks for itself.
+const note = hasPlaceholders ? DEMO_WORK_NOTE : undefined;
 ---
 
 <section id="work" class="border-t-2 border-volt">

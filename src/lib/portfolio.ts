@@ -88,11 +88,18 @@ export interface ProjectRole {
   label: string;
 }
 
+/** A client's review, reproduced word for word from its original. */
 export interface Testimonial {
   id: string;
+  /** Exact wording of the review (line breaks as in the original). */
   quote: string;
+  /** Name exactly as published with the review, e.g. "Алена К.". */
   author: string;
   company?: string;
+  /** What the review is about, e.g. the task title it was left for. */
+  context?: string;
+  /** Overall rating out of 5 as published with the review. */
+  rating?: number;
   placeholder: boolean;
 }
 
@@ -112,9 +119,14 @@ export interface PortfolioContent {
     role: string;
     location?: string;
     placeholderBio: boolean;
-    bio: string;
-    /** Portrait (image path). Absent until provided. */
+    /** Biography, one string per paragraph. */
+    bio: readonly string[];
+    /** Portrait (media key, WebP). Absent until provided. */
     portrait?: string;
+    /** Same portrait in AVIF. */
+    portraitAvif?: string;
+    /** Alt text for the portrait. */
+    portraitAlt?: string;
   };
   hero: {
     /** One plain sentence: who Anna is and what she does. */
@@ -135,7 +147,7 @@ export interface PortfolioContent {
   /** Role labels beyond the service titles (e.g. "Съёмка"). */
   roles?: readonly ProjectRole[];
   projects: readonly Project[];
-  /** Real reviews only (with the author's permission). Not rendered yet. */
+  /** Real reviews only, reproduced from their original. */
   testimonials?: readonly Testimonial[];
   contacts: readonly ContactChannel[];
 }

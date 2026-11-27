@@ -29,6 +29,7 @@
     "test:e2e:install": "playwright install chromium webkit",
     "fonts:metrics": "node scripts/font-fallback-metrics.mjs",
     "brand:images": "node scripts/brand-images.mjs",
+    "media:build": "node scripts/media-build.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build",
     "verify": "pnpm check && pnpm test:e2e"
